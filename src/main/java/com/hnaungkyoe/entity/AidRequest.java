@@ -9,21 +9,22 @@ import java.time.LocalDateTime;
         @Index(name = "idx_township", columnList = "township"),
         @Index(name = "idx_status", columnList = "status")
 })
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor @Builder
 public class AidRequest {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 🤝 Many Aid Requests belong to One User (Reporter)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reporter_id", nullable = false)
     private User reporter;
+
+    // Admin က verify လုပ်တဲ့သူ
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "verified_by")
+    private User verifiedBy;
 
     @Column(nullable = false, length = 100)
     private String title;
@@ -54,26 +55,27 @@ public class AidRequest {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
-        if (this.upvoteCount == null) {
-            this.upvoteCount = 0L; // ပို့စ်စတင်ဆောက်ချိန်မှာ Upvote Count ကို 0 အဖြစ် Auto သတ်မှတ်ပေးတာပါ
-        }
+        this.updatedAt = LocalDateTime.now();
+        if (this.upvoteCount == null) this.upvoteCount = 0L;
+        if (this.status == null) this.status = Status.PENDING;
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 
     public enum Category {
-        FOOD,
-        MEDICINE,
-        WATER,
-        CLOTHING,
-        SHELTER,
-        OTHER
+        FOOD, MEDICINE, WATER, CLOTHING, SHELTER, OTHER
     }
 
     public enum Status {
-        PENDING,
-        VERIFIED,
-        RESOLVED
+        PENDING, VERIFIED, IN_PROGRESS, RESOLVED, REJECTED
     }
 }

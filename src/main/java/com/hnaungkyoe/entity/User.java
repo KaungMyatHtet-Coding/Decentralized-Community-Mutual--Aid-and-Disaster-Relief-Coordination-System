@@ -6,11 +6,8 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor @Builder
 public class User {
 
     @Id
@@ -34,7 +31,7 @@ public class User {
     private Role role;
 
     @Column(name = "is_verified", nullable = false)
-    private boolean isVerified; // = false ဆိုတဲ့ ပိုနေတဲ့စာသားကို ဖယ်ထုတ်လိုက်လို့ အဝါရောင်လိုင်း ပျောက်သွားပါပြီ
+    private boolean isVerified;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -42,6 +39,8 @@ public class User {
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
+        if (this.role == null) this.role = Role.ROLE_PUBLIC;
+        this.isVerified = false;
     }
 
     public enum Role {

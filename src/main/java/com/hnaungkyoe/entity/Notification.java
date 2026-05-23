@@ -6,18 +6,14 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "notifications")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor @Builder
 public class Notification {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 🤝 Many notifications belong to One User
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -33,7 +29,10 @@ public class Notification {
     private Type type;
 
     @Column(name = "reference_id")
-    private Long referenceId; // Aid Request ID သို့မဟုတ် Donation ID ကို သိမ်းရန်
+    private Long referenceId;
+
+    @Column(name = "reference_type", length = 50)
+    private String referenceType; // "AID_REQUEST", "DONATION", "CAMPAIGN"
 
     @Column(name = "is_read", nullable = false)
     private boolean isRead;
@@ -44,13 +43,10 @@ public class Notification {
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
-        this.isRead = false; // Notification စဝင်ချင်းမှာ အလိုအလျောက် "မဖတ်ရသေးပါ (Unread)" အဖြစ် သတ်မှတ်တာပါ
+        this.isRead = false;
     }
 
     public enum Type {
-        REQUEST_CREATED,
-        STATUS_CHANGED,
-        VOLUNTEER_APPROVED,
-        DONATION_RECEIVED
+        REQUEST_CREATED, STATUS_CHANGED, VOLUNTEER_APPROVED, DONATION_RECEIVED
     }
 }

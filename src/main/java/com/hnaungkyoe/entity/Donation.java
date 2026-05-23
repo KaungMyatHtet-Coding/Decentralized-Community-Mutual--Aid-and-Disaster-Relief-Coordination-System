@@ -2,27 +2,24 @@ package com.hnaungkyoe.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "donations")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor @Builder
 public class Donation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 🤝 Many donations can be made by One User (If null, it means Anonymous Donor)
+    // Nullable — anonymous donor ဖြစ်နိုင်တယ်
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User donor;
 
-    // 🤝 Many donations can go to One Campaign
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "campaign_id", nullable = false)
     private Campaign campaign;
@@ -31,11 +28,10 @@ public class Donation {
     @Column(nullable = false)
     private DonationType donationType;
 
-    // ငွေကြေးလှူဒါန်းမှုအတွက်သုံးရန် (DonationType က MONEY ဆိုရင် ဖြည့်ရမည်)
-    @Column(name = "amount")
-    private Double amount;
+    // BigDecimal — ငွေကြေးအတွက် Double မသုံးသင့်
+    @Column(name = "amount", precision = 15, scale = 2)
+    private BigDecimal amount;
 
-    // ပစ္စည်းလှူဒါန်းမှုအတွက်သုံးရန် (DonationType က ITEMS ဆိုရင် ဖြည့်ရမည်)
     @Column(name = "item_name", length = 100)
     private String itemName;
 
@@ -58,19 +54,14 @@ public class Donation {
     @PrePersist
     protected void onCreate() {
         this.donatedAt = LocalDateTime.now();
-        if (this.status == null) {
-            this.status = Status.PENDING; // အလှူရှင်က ဖြတ်ပိုင်းတင်လိုက်ချင်းမှာ PENDING အဖြစ် Auto သတ်မှတ်ပေးတာပါ
-        }
+        if (this.status == null) this.status = Status.PENDING;
     }
 
     public enum DonationType {
-        MONEY,
-        ITEMS
+        MONEY, ITEMS
     }
 
     public enum Status {
-        PENDING,
-        CONFIRMED,
-        REJECTED
+        PENDING, CONFIRMED, REJECTED
     }
 }

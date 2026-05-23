@@ -5,23 +5,22 @@ import com.hnaungkyoe.service.VolunteerApplicationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/volunteer-applications")
 @CrossOrigin(origins = "*")
 public class VolunteerApplicationController {
-    private final VolunteerApplicationService service;
 
-    @Autowired
-    public VolunteerApplicationController(VolunteerApplicationService service) {
-        this.service = service;
-    }
+    @Autowired private VolunteerApplicationService service;
 
     @PostMapping
-    public ResponseEntity<VolunteerApplication> apply(@RequestBody VolunteerApplication application) {
-        return ResponseEntity.ok(service.apply(application));
+    public ResponseEntity<?> apply(@RequestBody VolunteerApplication application) {
+        try {
+            return ResponseEntity.ok(service.apply(application));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @GetMapping
@@ -29,10 +28,33 @@ public class VolunteerApplicationController {
         return ResponseEntity.ok(service.getAllApplications());
     }
 
+    @GetMapping("/pending")
+    public ResponseEntity<List<VolunteerApplication>> getPending() {
+        return ResponseEntity.ok(service.getPendingApplications());
+    }
+
     @GetMapping("/{id}")
-    public ResponseEntity<VolunteerApplication> getById(@PathVariable Long id) {
+    public ResponseEntity<?> getById(@PathVariable Long id) {
         return service.getApplicationById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PatchMapping("/{id}/approve")
+    public ResponseEntity<?> approve(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(service.approveApplication(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PatchMapping("/{id}/reject")
+    public ResponseEntity<?> reject(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(service.rejectApplication(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }

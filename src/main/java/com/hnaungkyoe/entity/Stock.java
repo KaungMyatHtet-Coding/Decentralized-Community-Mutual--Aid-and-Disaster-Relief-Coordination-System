@@ -6,11 +6,8 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "stocks")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor @Builder
 public class Stock {
 
     @Id
@@ -28,7 +25,7 @@ public class Stock {
     private Double quantity;
 
     @Column(nullable = false, length = 50)
-    private String unit; // ဥပမာ - "အိတ်", "ကတ်", "ဗူး", "ထုပ်" စသဖြင့် သတ်မှတ်ရန်
+    private String unit;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
@@ -36,15 +33,10 @@ public class Stock {
     @PrePersist
     @PreUpdate
     protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now(); // ပစ္စည်းစာရင်း အသစ်ဝင်တာပဲဖြစ်ဖြစ်၊ အရေအတွက် ပြောင်းလဲတာပဲဖြစ်ဖြစ် အချိန်ကို Auto မှတ်ပေးမှာပါ
+        this.updatedAt = LocalDateTime.now();
     }
 
     public enum Category {
-        FOOD,
-        MEDICINE,
-        WATER,
-        CLOTHING,
-        SHELTER,
-        OTHER
+        FOOD, MEDICINE, WATER, CLOTHING, SHELTER, OTHER
     }
 }

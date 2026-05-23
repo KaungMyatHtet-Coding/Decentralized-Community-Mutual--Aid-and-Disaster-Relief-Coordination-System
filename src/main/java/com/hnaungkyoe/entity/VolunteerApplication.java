@@ -5,19 +5,17 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "volunteer_applications")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Table(name = "volunteer_applications", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"user_id"})
+})
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor @Builder
 public class VolunteerApplication {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 🤝 Many applications can be submitted by One User
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -38,14 +36,10 @@ public class VolunteerApplication {
     @PrePersist
     protected void onCreate() {
         this.appliedAt = LocalDateTime.now();
-        if (this.status == null) {
-            this.status = Status.PENDING; // လျှောက်လွှာ စတင်တင်လိုက်ချင်းမှာ Status ကို PENDING အဖြစ် Auto သတ်မှတ်ပေးတာပါ
-        }
+        if (this.status == null) this.status = Status.PENDING;
     }
 
     public enum Status {
-        PENDING,
-        APPROVED,
-        REJECTED
+        PENDING, APPROVED, REJECTED
     }
 }
