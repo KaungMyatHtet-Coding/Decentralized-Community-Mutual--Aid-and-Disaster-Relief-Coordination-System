@@ -61,6 +61,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/donations/my").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/donations").authenticated()
 
+                        // ဒါတွေ .authorizeHttpRequests ထဲမှာ တိုးထည့်ပါ
+                        .requestMatchers(HttpMethod.GET, "/api/donations/filter")
+                        .hasAnyAuthority("ROLE_SUPER_ADMIN", "SUPER_ADMIN", "ROLE_SUB_ADMIN", "SUB_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/donations/stats")
+                        .hasAnyAuthority("ROLE_SUPER_ADMIN", "SUPER_ADMIN", "ROLE_SUB_ADMIN", "SUB_ADMIN")
+
                         // === SUPER ADMIN ONLY ===
                         .requestMatchers("/api/audit-logs/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/users/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "SUPER_ADMIN")
