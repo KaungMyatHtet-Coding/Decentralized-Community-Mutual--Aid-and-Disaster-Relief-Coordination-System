@@ -8,4 +8,5 @@ import java.util.List;
 @Repository
 public interface CampaignRepository extends JpaRepository<Campaign, Long> {
     List<Campaign> findByStatus(Campaign.Status status);
+    long countByStatus(String status);
 }

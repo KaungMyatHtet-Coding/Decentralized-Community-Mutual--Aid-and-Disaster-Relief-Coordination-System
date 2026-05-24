@@ -40,6 +40,6 @@ public class VolunteerApplication {
     }
 
     public enum Status {
-        PENDING, APPROVED, REJECTED
+        PENDING, APPROVED, REJECTED, FIRED  // ✅ Added FIRED
     }
 }

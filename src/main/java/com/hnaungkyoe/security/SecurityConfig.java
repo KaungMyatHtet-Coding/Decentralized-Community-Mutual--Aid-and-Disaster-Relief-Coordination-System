@@ -56,6 +56,32 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/campaigns").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/campaigns/**").permitAll()
 
+
+                                // Admin Stats — Admin သာ
+                                .requestMatchers(HttpMethod.GET, "/api/admin/stats")
+                                .hasAnyAuthority("ROLE_SUPER_ADMIN", "SUPER_ADMIN", "ROLE_SUB_ADMIN", "SUB_ADMIN")
+
+// Admin Volunteer Management — Admin သာ
+                                .requestMatchers(HttpMethod.GET, "/api/admin/volunteers")
+                                .hasAnyAuthority("ROLE_SUPER_ADMIN", "SUPER_ADMIN", "ROLE_SUB_ADMIN", "SUB_ADMIN")
+                                .requestMatchers(HttpMethod.GET, "/api/admin/volunteers/applications")
+                                .hasAnyAuthority("ROLE_SUPER_ADMIN", "SUPER_ADMIN", "ROLE_SUB_ADMIN", "SUB_ADMIN")
+                                .requestMatchers(HttpMethod.PATCH, "/api/admin/volunteers/**")
+                                .hasAnyAuthority("ROLE_SUPER_ADMIN", "SUPER_ADMIN", "ROLE_SUB_ADMIN", "SUB_ADMIN")
+
+                                // Posts — GET ပဲ public (NewsFeed)
+                                .requestMatchers(HttpMethod.GET, "/api/posts").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/posts/**").permitAll()
+
+// Posts — Admin CRUD
+                                .requestMatchers(HttpMethod.GET, "/api/posts/all")
+                                .hasAnyAuthority("ROLE_SUPER_ADMIN", "SUPER_ADMIN", "ROLE_SUB_ADMIN", "SUB_ADMIN")
+                                .requestMatchers(HttpMethod.POST, "/api/posts")
+                                .hasAnyAuthority("ROLE_SUPER_ADMIN", "SUPER_ADMIN", "ROLE_SUB_ADMIN", "SUB_ADMIN")
+                                .requestMatchers(HttpMethod.PUT, "/api/posts/**")
+                                .hasAnyAuthority("ROLE_SUPER_ADMIN", "SUPER_ADMIN", "ROLE_SUB_ADMIN", "SUB_ADMIN")
+                                .requestMatchers(HttpMethod.DELETE, "/api/posts/**")
+                                .hasAnyAuthority("ROLE_SUPER_ADMIN", "SUPER_ADMIN", "ROLE_SUB_ADMIN", "SUB_ADMIN")
                         // === USER & ADMIN (Authenticated Users) ===
                         // 💡 အလှူမှတ်တမ်းကြည့်ခြင်းနှင့် လှူဒါန်းခြင်းကို ပထမဦးစားပေး အနေဖြင့် သီးသန့်ခွဲထုတ်ထားခြင်း
                         .requestMatchers(HttpMethod.GET, "/api/donations/my").authenticated()
