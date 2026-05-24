@@ -31,7 +31,7 @@ public class User {
     private Role role;
 
     @Column(name = "is_verified", nullable = false)
-    private boolean isVerified;
+    private Boolean verified;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -40,7 +40,7 @@ public class User {
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
         if (this.role == null) this.role = Role.ROLE_PUBLIC;
-        this.isVerified = false;
+        this.verified = false;
     }
 
     public enum Role {

@@ -58,7 +58,7 @@ public class UserService {
             user.setEmail(updatedUser.getEmail());
             user.setPhoneNumber(updatedUser.getPhoneNumber());
             user.setRole(updatedUser.getRole());
-            user.setVerified(updatedUser.isVerified());
+            user.setVerified(updatedUser.getVerified());
             // ← Password ကို ဒီမှာ မပြောင်းဘူး — သီးသန့် changePassword method သုံးရမယ်
             return userRepository.save(user);
         }).orElseThrow(() -> new RuntimeException("User not found with id: " + id));

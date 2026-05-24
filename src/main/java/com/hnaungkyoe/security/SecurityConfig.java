@@ -3,6 +3,7 @@ package com.hnaungkyoe.security;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -30,14 +31,36 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // ဒီ endpoints တွေ Login မလိုဘဲ ဝင်လို့ရတယ်
+
+                        // === PUBLIC — Token မလိုဘဲ ဝင်လို့ရတယ် ===
                         .requestMatchers("/api/users/register").permitAll()
                         .requestMatchers("/api/auth/login").permitAll()
-                        .requestMatchers("/api/aid-requests").permitAll()
-                        // Admin ပဲ ဝင်ခွင့်ရှိတဲ့ endpoints
-                        .requestMatchers("/api/audit-logs/**").hasAuthority("ROLE_SUPER_ADMIN")
-                        .requestMatchers("/api/stocks/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_SUB_ADMIN")
-                        // ကျန်တဲ့ အားလုံး Login လိုတယ်
+
+                        // Aid Requests — GET ပဲ public ဖြစ်တယ်
+                        .requestMatchers(HttpMethod.GET, "/api/aid-requests").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/aid-requests/**").permitAll()
+
+                        // Campaigns — GET ပဲ public ဖြစ်တယ်
+                        .requestMatchers(HttpMethod.GET, "/api/campaigns").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/campaigns/**").permitAll()
+
+                        // === SUPER ADMIN ONLY ===
+                        .requestMatchers("/api/audit-logs/**")
+                        .hasAuthority("ROLE_SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/users/**")
+                        .hasAuthority("ROLE_SUPER_ADMIN")
+
+                        // === ADMIN (SUB + SUPER) ===
+                        .requestMatchers("/api/stocks/**")
+                        .hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_SUB_ADMIN")
+                        .requestMatchers("/api/donations/**")
+                        .hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_SUB_ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/aid-requests/**")
+                        .hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_SUB_ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/volunteer-applications/**")
+                        .hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_SUB_ADMIN")
+
+                        // === ကျန်တဲ့ အားလုံး — Login လိုတယ် ===
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
