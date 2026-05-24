@@ -1,22 +1,27 @@
 package com.hnaungkyoe.controller;
 
 import com.hnaungkyoe.entity.AidRequest;
+import com.hnaungkyoe.entity.User;
 import com.hnaungkyoe.service.AidRequestService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/aid-requests")
-@CrossOrigin(origins = "*")
 public class AidRequestController {
 
     @Autowired private AidRequestService service;
 
+    // ✅ reporter ကို JWT ကနေ ယူတယ် — frontend က ပို့စရာမလို
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody AidRequest request) {
+    public ResponseEntity<?> create(
+            @RequestBody AidRequest request,
+            @AuthenticationPrincipal User currentUser) {
         try {
+            request.setReporter(currentUser);
             return ResponseEntity.ok(service.createAidRequest(request));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -36,30 +41,47 @@ public class AidRequestController {
     }
 
     @GetMapping("/status/{status}")
-    public ResponseEntity<List<AidRequest>> getByStatus(@PathVariable AidRequest.Status status) {
+    public ResponseEntity<List<AidRequest>> getByStatus(
+            @PathVariable AidRequest.Status status) {
         return ResponseEntity.ok(service.getByStatus(status));
     }
 
     @GetMapping("/township/{township}")
-    public ResponseEntity<List<AidRequest>> getByTownship(@PathVariable String township) {
+    public ResponseEntity<List<AidRequest>> getByTownship(
+            @PathVariable String township) {
         return ResponseEntity.ok(service.getByTownship(township));
     }
 
-    // Status update endpoint
+    // ✅ adminId ကို JWT ကနေ ယူတယ်
     @PatchMapping("/{id}/status")
-    public ResponseEntity<?> updateStatus(@PathVariable Long id,
-                                          @RequestParam AidRequest.Status status,
-                                          @RequestParam Long adminId) {
+    public ResponseEntity<?> updateStatus(
+            @PathVariable Long id,
+            @RequestParam AidRequest.Status status,
+            @AuthenticationPrincipal User currentUser) {
         try {
-            return ResponseEntity.ok(service.updateStatus(id, status, adminId));
+            return ResponseEntity.ok(
+                    service.updateStatus(id, status, currentUser.getId()));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    // ✅ မိမိတင်ထားတဲ့ requests တွေ ကြည့်တယ်
+    @GetMapping("/my")
+    public ResponseEntity<List<AidRequest>> getMyRequests(
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(
+                service.getByReporterId(currentUser.getId()));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {
         service.deleteAidRequest(id);
         return ResponseEntity.ok("Aid request deleted successfully");
+    }
+    @GetMapping("/categories")
+    public ResponseEntity<List<AidRequest>> getByCategories(
+            @RequestParam List<AidRequest.Category> categories) {
+        return ResponseEntity.ok(service.getByCategories(categories));
     }
 }

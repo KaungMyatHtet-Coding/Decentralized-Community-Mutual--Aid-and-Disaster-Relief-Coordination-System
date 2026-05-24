@@ -79,4 +79,10 @@ public class AidRequestService {
     public void deleteAidRequest(Long id) {
         aidRequestRepository.deleteById(id);
     }
+    public List<AidRequest> getByReporterId(Long reporterId) {
+        return aidRequestRepository.findByReporterId(reporterId);
+    }
+    public List<AidRequest> getByCategories(List<AidRequest.Category> categories) {
+        return aidRequestRepository.findByCategoriesIn(categories);
+    }
 }

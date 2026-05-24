@@ -62,5 +62,5 @@ public interface DonationRepository extends JpaRepository<Donation, Long> {
             "WHERE d.status = 'CONFIRMED' AND d.donationType = 'MONEY' " +
             "GROUP BY d.campaign.title ORDER BY SUM(d.amount) DESC")
     List<Object[]> getTopCampaignStats();
-    long countByStatus(String status);
+    long countByStatus(Donation.Status status);
 }

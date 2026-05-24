@@ -3,11 +3,11 @@ package com.hnaungkyoe.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "aid_requests", indexes = {
-        @Index(name = "idx_township", columnList = "township"),
-        @Index(name = "idx_status", columnList = "status")
+        @Index(name = "idx_township", columnList = "township")
 })
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor @Builder
@@ -21,7 +21,6 @@ public class AidRequest {
     @JoinColumn(name = "reporter_id", nullable = false)
     private User reporter;
 
-    // Admin က verify လုပ်တဲ့သူ
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "verified_by")
     private User verifiedBy;
@@ -32,9 +31,13 @@ public class AidRequest {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
+    // ✅ category single field ဖျက်ပြီး categories list ပဲ ထားတယ်
+    @ElementCollection(targetClass = Category.class)
+    @CollectionTable(name = "aid_request_categories",
+            joinColumns = @JoinColumn(name = "aid_request_id"))
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Category category;
+    @Column(name = "category", nullable = false)
+    private List<Category> categories;
 
     @Column(nullable = false, length = 100)
     private String township;
@@ -45,6 +48,7 @@ public class AidRequest {
     @Column(name = "contact_phone", nullable = false, length = 20)
     private String contactPhone;
 
+    // ✅ status field ပြန်ထည့်တယ်
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Status status;

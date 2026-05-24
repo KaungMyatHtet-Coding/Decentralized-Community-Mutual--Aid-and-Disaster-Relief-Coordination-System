@@ -1,10 +1,12 @@
 package com.hnaungkyoe.controller;
 
 import com.hnaungkyoe.entity.Donation;
+import com.hnaungkyoe.entity.User;
 import com.hnaungkyoe.service.DonationService;
 import com.hnaungkyoe.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
@@ -17,8 +19,13 @@ public class DonationController {
     @Autowired private DonationService service;
     @Autowired private UserRepository userRepository;
 
+   
+
     @PostMapping
-    public ResponseEntity<?> record(@RequestBody Donation donation) {
+    public ResponseEntity<?> record(
+            @RequestBody Donation donation,
+            @AuthenticationPrincipal User currentUser) {
+        donation.setDonor(currentUser);
         return ResponseEntity.ok(service.recordDonation(donation));
     }
 

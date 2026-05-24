@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import com.hnaungkyoe.entity.Donation;
+import com.hnaungkyoe.entity.Campaign;
 
 @RestController
 @RequestMapping("/api/admin/stats")
@@ -32,13 +34,8 @@ public class AdminStatsController {
         // Total donations count
         stats.put("totalDonations", donationRepository.count());
 
-        // Pending donations (PENDING status)
-        stats.put("pendingDonations",
-                donationRepository.countByStatus("PENDING"));
-
-        // Active campaigns
-        stats.put("activeCampaigns",
-                campaignRepository.countByStatus("ACTIVE"));
+        donationRepository.countByStatus(Donation.Status.PENDING);
+        campaignRepository.countByStatus(Campaign.Status.ACTIVE);
 
         // Total registered users
         stats.put("totalUsers", userRepository.count());
