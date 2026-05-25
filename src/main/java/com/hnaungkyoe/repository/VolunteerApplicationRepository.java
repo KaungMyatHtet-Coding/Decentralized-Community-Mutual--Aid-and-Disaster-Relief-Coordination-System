@@ -27,4 +27,9 @@ public interface VolunteerApplicationRepository extends JpaRepository<VolunteerA
     // ✅ Status enum, correct field appliedAt, correct relation user_ (not applicant_)
     List<VolunteerApplication> findByStatusAndUser_UsernameContainingIgnoreCaseOrderByAppliedAtDesc(
             VolunteerApplication.Status status, String username);
+    // ဒါ ထည့်ပေး — township နဲ့ volunteer ရှာဖို့
+    List<VolunteerApplication> findByStatusAndOperatingTownship(
+            VolunteerApplication.Status status,
+            String operatingTownship
+    );
 }

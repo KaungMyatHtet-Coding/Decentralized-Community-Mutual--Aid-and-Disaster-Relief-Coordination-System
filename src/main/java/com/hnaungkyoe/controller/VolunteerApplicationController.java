@@ -1,9 +1,11 @@
 package com.hnaungkyoe.controller;
 
+import com.hnaungkyoe.entity.User;
 import com.hnaungkyoe.entity.VolunteerApplication;
 import com.hnaungkyoe.service.VolunteerApplicationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -13,10 +15,12 @@ import java.util.List;
 public class VolunteerApplicationController {
 
     @Autowired private VolunteerApplicationService service;
-
     @PostMapping
-    public ResponseEntity<?> apply(@RequestBody VolunteerApplication application) {
+    public ResponseEntity<?> apply(
+            @RequestBody VolunteerApplication application,
+            @AuthenticationPrincipal User currentUser) {
         try {
+            application.setUser(currentUser); // ← JWT ကနေ ယူ
             return ResponseEntity.ok(service.apply(application));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());

@@ -36,6 +36,12 @@ public class DonationService {
                 && donation.getAmount() != null) {
             Campaign campaign = donation.getCampaign();
             campaign.setCurrentAmount(campaign.getCurrentAmount().add(donation.getAmount()));
+
+            // ✅ Goal ရောက်ရင် COMPLETED အဖြစ် သတ်မှတ်
+            if (campaign.getCurrentAmount().compareTo(campaign.getTargetAmount()) >= 0) {
+                campaign.setStatus(Campaign.Status.COMPLETED);
+            }
+
             campaignRepository.save(campaign);
         }
 
@@ -50,6 +56,7 @@ public class DonationService {
 
         Donation confirmed = donationRepository.save(donation);
 
+        // ✅ Donor ကို notify
         if (confirmed.getDonor() != null) {
             notificationService.sendNotification(
                     confirmed.getDonor(),
@@ -60,6 +67,7 @@ public class DonationService {
                     "DONATION"
             );
         }
+
         return confirmed;
     }
 
@@ -166,4 +174,5 @@ public class DonationService {
 
         return stats;
     }
+
 }

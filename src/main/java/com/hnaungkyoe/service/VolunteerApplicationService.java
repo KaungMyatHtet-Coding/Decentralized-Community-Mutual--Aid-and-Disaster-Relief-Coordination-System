@@ -56,7 +56,19 @@ public class VolunteerApplicationService {
         VolunteerApplication app = repository.findById(applicationId)
                 .orElseThrow(() -> new RuntimeException("Application not found"));
         app.setStatus(VolunteerApplication.Status.REJECTED);
-        return repository.save(app);
+        VolunteerApplication saved = repository.save(app);
+
+        // ✅ ဒါပဲ ထည့် — reject notification
+        notificationService.sendNotification(
+                saved.getUser(),
+                "Volunteer Application Rejected",
+                "မင်းရဲ့ volunteer လျှောက်လွှာ ငြင်းပယ်ခံရပြီ။ နောက်တစ်ကြိမ် ထပ်လျှောက်နိုင်ပါတယ်။",
+                Notification.Type.VOLUNTEER_REJECTED,
+                saved.getId(),
+                "VOLUNTEER_APPLICATION"
+        );
+
+        return saved;
     }
 
     public List<VolunteerApplication> getAllApplications() {

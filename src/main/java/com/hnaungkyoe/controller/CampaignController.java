@@ -35,4 +35,14 @@ public class CampaignController {
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+    @PutMapping("/{id}")
+    public ResponseEntity<Campaign> update(@PathVariable Long id, @RequestBody Campaign campaign) {
+        return ResponseEntity.ok(service.updateCampaign(id, campaign));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> delete(@PathVariable Long id) {
+        service.deleteCampaign(id);
+        return ResponseEntity.ok("Campaign deleted.");
+    }
 }

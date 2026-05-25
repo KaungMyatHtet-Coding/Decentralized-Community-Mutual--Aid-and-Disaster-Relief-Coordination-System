@@ -55,6 +55,12 @@ public class SecurityConfig {
                         // Campaigns — GET ပဲ public ဖြစ်တယ်
                         .requestMatchers(HttpMethod.GET, "/api/campaigns").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/campaigns/**").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/api/campaigns")
+                                .hasAnyAuthority("ROLE_SUPER_ADMIN","SUPER_ADMIN","ROLE_SUB_ADMIN","SUB_ADMIN")
+                                .requestMatchers(HttpMethod.PUT, "/api/campaigns/**")
+                                .hasAnyAuthority("ROLE_SUPER_ADMIN","SUPER_ADMIN","ROLE_SUB_ADMIN","SUB_ADMIN")
+                                .requestMatchers(HttpMethod.DELETE, "/api/campaigns/**")
+                                .hasAnyAuthority("ROLE_SUPER_ADMIN","SUPER_ADMIN","ROLE_SUB_ADMIN","SUB_ADMIN")
 
 
                                 // Admin Stats — Admin သာ
@@ -105,7 +111,15 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/donations").hasAnyAuthority("ROLE_SUPER_ADMIN", "SUPER_ADMIN", "ROLE_SUB_ADMIN", "SUB_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/donations/").hasAnyAuthority("ROLE_SUPER_ADMIN", "SUPER_ADMIN", "ROLE_SUB_ADMIN", "SUB_ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/donations/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "SUPER_ADMIN", "ROLE_SUB_ADMIN", "SUB_ADMIN")
+                                // Donations အပိုင်းနားမှာ ထည့်
+                                .requestMatchers(HttpMethod.POST, "/api/item-donations").authenticated()
+                                .requestMatchers(HttpMethod.GET, "/api/item-donations/my").authenticated()
+                                .requestMatchers(HttpMethod.GET, "/api/item-donations/assigned").authenticated()
+                                .requestMatchers(HttpMethod.PATCH, "/api/item-donations/**")
+                                .hasAnyAuthority("ROLE_SUPER_ADMIN", "SUPER_ADMIN", "ROLE_SUB_ADMIN", "SUB_ADMIN", "ROLE_VOLUNTEER")
                         .requestMatchers(HttpMethod.PATCH, "/api/aid-requests/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "SUPER_ADMIN", "ROLE_SUB_ADMIN", "SUB_ADMIN")
+                                .requestMatchers(HttpMethod.POST, "/api/volunteer-applications").authenticated()
+                                .requestMatchers(HttpMethod.GET, "/api/volunteer-applications/my").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/volunteer-applications/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "SUPER_ADMIN", "ROLE_SUB_ADMIN", "SUB_ADMIN")
 
                         // === ကျန်တဲ့ အားလုံး — Login လိုတယ် ===

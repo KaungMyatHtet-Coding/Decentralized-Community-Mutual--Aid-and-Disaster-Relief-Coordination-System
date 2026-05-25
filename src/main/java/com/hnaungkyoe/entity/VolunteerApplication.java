@@ -23,6 +23,9 @@ public class VolunteerApplication {
     @Column(name = "proof_image_url", nullable = false, length = 255)
     private String proofImageUrl;
 
+    @Column(name = "operating_township", length = 100) // ← ထည့်
+    private String operatingTownship;
+
     @Column(name = "application_note", nullable = false, columnDefinition = "TEXT")
     private String applicationNote;
 

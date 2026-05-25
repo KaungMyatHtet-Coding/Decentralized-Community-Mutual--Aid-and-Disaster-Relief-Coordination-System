@@ -47,6 +47,11 @@ public class Notification {
     }
 
     public enum Type {
-        REQUEST_CREATED, STATUS_CHANGED, VOLUNTEER_APPROVED, DONATION_RECEIVED
+        REQUEST_CREATED,
+        STATUS_CHANGED,
+        DONATION_RECEIVED,   // ✅ ရှိပြီ
+        CAMPAIGN_COMPLETED,  // ➕ ထည့်
+        VOLUNTEER_APPROVED,  // ✅ ရှိပြီ
+        VOLUNTEER_REJECTED   // ➕ ထည့်
     }
 }
