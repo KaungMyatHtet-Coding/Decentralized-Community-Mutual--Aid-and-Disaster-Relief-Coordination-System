@@ -63,12 +63,23 @@ public class AidRequestService {
 
         AidRequest updated = aidRequestRepository.save(request);
 
-        // ဒီ အသစ်နဲ့ အစားထိုးပါ
+        // ✅ Reporter (user) ကို notify — status ပြောင်းကြောင်း
+        notificationService.sendNotification(
+                updated.getReporter(),
+                "Aid Request " + newStatus.name(),
+                "မင်းရဲ့ '" + updated.getTitle() + "' request status: "
+                        + oldStatus.name() + " → " + newStatus.name(),
+                Notification.Type.STATUS_CHANGED,
+                updated.getId(),
+                "AID_REQUEST"
+        );
+
+        // ✅ Admin တွေကိုလည်း notify — status ပြောင်းကြောင်း
         notificationService.sendToAllAdmins(
-                "🆘 New Aid Request",
-                "User " + updated.getReporter().getUsername() +
-                        " submitted: " + updated.getTitle(),
-                Notification.Type.REQUEST_CREATED,
+                "🆘 Aid Request Updated",
+                "Request '" + updated.getTitle() + "' status changed: "
+                        + oldStatus.name() + " → " + newStatus.name(),
+                Notification.Type.STATUS_CHANGED,
                 updated.getId(),
                 "AID_REQUEST"
         );

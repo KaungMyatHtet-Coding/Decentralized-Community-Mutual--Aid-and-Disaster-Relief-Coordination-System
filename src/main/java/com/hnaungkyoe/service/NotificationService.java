@@ -61,4 +61,13 @@ public class NotificationService {
             sendNotification(admin, title, message, type, referenceId, referenceType);
         }
     }
+    // ➕ Users အားလုံးဆီ notification ပို့တဲ့ method
+    public void sendToAllUsers(String title, String message,
+                               Notification.Type type, Long referenceId,
+                               String referenceType) {
+        List<User> allUsers = userRepository.findAll();
+        for (User user : allUsers) {
+            sendNotification(user, title, message, type, referenceId, referenceType);
+        }
+    }
 }

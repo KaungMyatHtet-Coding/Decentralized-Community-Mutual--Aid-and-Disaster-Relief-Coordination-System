@@ -31,20 +31,17 @@ public class AdminStatsController {
     public ResponseEntity<Map<String, Object>> getStats() {
         Map<String, Object> stats = new HashMap<>();
 
-        // Total donations count
         stats.put("totalDonations", donationRepository.count());
 
-        donationRepository.countByStatus(Donation.Status.PENDING);
-        campaignRepository.countByStatus(Campaign.Status.ACTIVE);
+        // ✅ ဒါတွေ ထည့်လိုက်
+        stats.put("pendingDonations",
+                donationRepository.countByStatus(Donation.Status.PENDING));
+        stats.put("activeCampaigns",
+                campaignRepository.countByStatus(Campaign.Status.ACTIVE));
 
-        // Total registered users
         stats.put("totalUsers", userRepository.count());
-
-        // ✅ Enum instead of String
         stats.put("pendingApplications",
                 volunteerApplicationRepository.countByStatus(VolunteerApplication.Status.PENDING));
-
-        // ✅ Enum instead of String
         stats.put("activeVolunteers",
                 volunteerApplicationRepository.countByStatus(VolunteerApplication.Status.APPROVED));
 
