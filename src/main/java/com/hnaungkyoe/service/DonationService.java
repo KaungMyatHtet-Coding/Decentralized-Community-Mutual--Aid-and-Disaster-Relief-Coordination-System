@@ -23,7 +23,20 @@ public class DonationService {
     @Autowired private UserRepository userRepository;
 
     public Donation recordDonation(Donation donation) {
-        return donationRepository.save(donation);
+        Donation saved = donationRepository.save(donation); // ← 'saved' variable ဆောက်ပြီး
+
+        // ➕ Admin ဆီ notify
+        notificationService.sendToAllAdmins(
+                "💰 New Donation",
+                "User " + (saved.getDonor() != null ?
+                        saved.getDonor().getUsername() : "Anonymous") +
+                        " donated to: " + saved.getCampaign().getTitle(),
+                Notification.Type.DONATION_RECEIVED,
+                saved.getId(),
+                "DONATION"
+        );
+
+        return saved; // ← saved ပြန်ပို့
     }
 
     @Transactional

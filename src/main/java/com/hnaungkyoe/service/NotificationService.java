@@ -2,6 +2,7 @@ package com.hnaungkyoe.service;
 
 import com.hnaungkyoe.entity.Notification;
 import com.hnaungkyoe.entity.User;
+import com.hnaungkyoe.repository.UserRepository;
 import com.hnaungkyoe.repository.NotificationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -46,5 +47,18 @@ public class NotificationService {
                 .orElseThrow(() -> new RuntimeException("Notification not found"));
         n.setRead(true);
         return notificationRepository.save(n);
+    }
+    @Autowired private UserRepository userRepository;
+
+    // ➕ Admin အားလုံးဆီ notification ပို့တဲ့ method အသစ်
+    public void sendToAllAdmins(String title, String message,
+                                Notification.Type type, Long referenceId,
+                                String referenceType) {
+        List<User> admins = userRepository.findByRoleIn(
+                List.of(User.Role.ROLE_SUPER_ADMIN, User.Role.ROLE_SUB_ADMIN)
+        );
+        for (User admin : admins) {
+            sendNotification(admin, title, message, type, referenceId, referenceType);
+        }
     }
 }

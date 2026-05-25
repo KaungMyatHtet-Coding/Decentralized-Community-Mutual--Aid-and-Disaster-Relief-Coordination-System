@@ -63,12 +63,12 @@ public class AidRequestService {
 
         AidRequest updated = aidRequestRepository.save(request);
 
-        // Reporter ကို notify လုပ်တယ်
-        notificationService.sendNotification(
-                updated.getReporter(),
-                "Request Status Updated",
-                "မင်းရဲ့ request status " + oldStatus + " မှ " + newStatus + " ပြောင်းသွားပြီ",
-                Notification.Type.STATUS_CHANGED,
+        // ဒီ အသစ်နဲ့ အစားထိုးပါ
+        notificationService.sendToAllAdmins(
+                "🆘 New Aid Request",
+                "User " + updated.getReporter().getUsername() +
+                        " submitted: " + updated.getTitle(),
+                Notification.Type.REQUEST_CREATED,
                 updated.getId(),
                 "AID_REQUEST"
         );

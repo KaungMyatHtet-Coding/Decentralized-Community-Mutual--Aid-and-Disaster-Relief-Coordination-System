@@ -20,19 +20,16 @@ public class ItemDonationService {
     @Transactional
     public ItemDonation submitItemDonation(ItemDonation donation) {
 
-        // Donor township နဲ့ match တဲ့ volunteer ရှာ
         List<VolunteerApplication> volunteers = volunteerApplicationRepository
                 .findByStatusAndOperatingTownship(
                         VolunteerApplication.Status.APPROVED,
                         donation.getDonorTownship()
                 );
 
-        // Township match တဲ့ volunteer ရှိရင် auto assign
         if (!volunteers.isEmpty()) {
             User assignedVolunteer = volunteers.get(0).getUser();
             donation.setAssignedVolunteer(assignedVolunteer);
 
-            // Volunteer ကို notify
             notificationService.sendNotification(
                     assignedVolunteer,
                     "📦 Item Donation Assigned",
@@ -47,7 +44,19 @@ public class ItemDonationService {
 
         ItemDonation saved = itemDonationRepository.save(donation);
 
-        // Donor ကို confirm notification
+        // ✅ Admin notify — ဒါသာ မပါတာ ထည့်လိုက်
+        notificationService.sendToAllAdmins(
+                "📦 New Item Donation",
+                (saved.getIsAnonymous() ? "Anonymous" : saved.getDonor().getUsername()) +
+                        " donated: " + saved.getItemName() +
+                        " (" + saved.getQuantity() + " " + saved.getUnit() + ")" +
+                        " from " + saved.getDonorTownship(),
+                Notification.Type.DONATION_RECEIVED,
+                saved.getId(),
+                "ITEM_DONATION"
+        );
+
+        // Donor notify
         notificationService.sendNotification(
                 saved.getDonor(),
                 "✅ Item Donation Submitted",
