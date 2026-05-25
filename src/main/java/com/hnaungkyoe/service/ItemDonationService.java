@@ -26,23 +26,41 @@ public class ItemDonationService {
                         donation.getDonorTownship()
                 );
 
+        // ✅ Volunteer assign ပဲ လုပ်၊ notify မလုပ်သေးဘူး
         if (!volunteers.isEmpty()) {
             User assignedVolunteer = volunteers.get(0).getUser();
             donation.setAssignedVolunteer(assignedVolunteer);
+        }
+
+        // ✅ အရင်ဆုံး save လုပ်လိုက် — ID ရပြီ
+        ItemDonation saved = itemDonationRepository.save(donation);
+
+        // ✅ Save ပြီးမှ volunteer notify — referenceId ပါပြီ
+        if (saved.getAssignedVolunteer() != null) {
+            String volunteerMsg;
+            if (saved.getHandoverType() == ItemDonation.HandoverType.PICKUP) {
+                volunteerMsg = "📍 PICKUP — " + saved.getDonorTownship() +
+                        " မှ " + saved.getItemName() +
+                        " (" + saved.getQuantity() + " " + saved.getUnit() + ")" +
+                        " ကို " + saved.getDonor().getUsername() +
+                        " ဆီ သွားယူပေးပါ။ 📞 " + saved.getDonorPhone() +
+                        " | 📅 " + saved.getHandoverDate();
+            } else {
+                volunteerMsg = "📦 DELIVER — " + saved.getDonor().getUsername() +
+                        " က " + saved.getItemName() +
+                        " (" + saved.getQuantity() + " " + saved.getUnit() + ")" +
+                        " ကို မင်းဆီ ပို့လာမယ်။ | 📅 " + saved.getHandoverDate();
+            }
 
             notificationService.sendNotification(
-                    assignedVolunteer,
+                    saved.getAssignedVolunteer(),
                     "📦 Item Donation Assigned",
-                    donation.getDonorTownship() + " မှ " +
-                            donation.getItemName() + " (" + donation.getQuantity()
-                            + " " + donation.getUnit() + ") လက်ခံပေးပါ",
+                    volunteerMsg,
                     Notification.Type.STATUS_CHANGED,
-                    null,
+                    saved.getId(),   // ✅ null မဟုတ်တော့ဘူး
                     "ITEM_DONATION"
             );
         }
-
-        ItemDonation saved = itemDonationRepository.save(donation);
 
         // ✅ Admin notify — ဒါသာ မပါတာ ထည့်လိုက်
         notificationService.sendToAllAdmins(
@@ -88,11 +106,29 @@ public class ItemDonationService {
         ItemDonation saved = itemDonationRepository.save(donation);
 
         // Donor ကို notify
+        // ✅ ဒါနဲ့ အစားထိုး
+        String donorMsg;
+        if (saved.getAssignedVolunteer() != null) {
+            if (saved.getHandoverType() == ItemDonation.HandoverType.DELIVER) {
+                donorMsg = "မင်းရဲ့ " + saved.getItemName() + " donation တင်ပြီ။\n" +
+                        "📍 Volunteer: " + saved.getAssignedVolunteer().getUsername() + "\n" +
+                        "📞 Phone: " + saved.getAssignedVolunteer().getPhoneNumber() + "\n" +
+                        "🏘️ Township: " + saved.getDonorTownship() + "\n" +
+                        "📅 Date: " + saved.getHandoverDate() + "\n" +
+                        "➡️ ဒီ volunteer ဆီ item ပို့ပေးပါ။";
+            } else {
+                donorMsg = "မင်းရဲ့ " + saved.getItemName() + " donation တင်ပြီ။\n" +
+                        "📅 " + saved.getHandoverDate() + " မှာ volunteer လာယူပါမယ်။\n" +
+                        "📞 Volunteer: " + saved.getAssignedVolunteer().getPhoneNumber();
+            }
+        } else {
+            donorMsg = saved.getItemName() + " donation တင်ပြီ။ မင်းရဲ့ township မှာ volunteer ရှာနေပါတယ်။";
+        }
+
         notificationService.sendNotification(
                 saved.getDonor(),
-                "📦 Donation Received by Volunteer",
-                "မင်းရဲ့ " + saved.getItemName() +
-                        " ကို volunteer လက်ခံပြီ ✅",
+                "✅ Item Donation Submitted",
+                donorMsg,
                 Notification.Type.DONATION_RECEIVED,
                 saved.getId(),
                 "ITEM_DONATION"

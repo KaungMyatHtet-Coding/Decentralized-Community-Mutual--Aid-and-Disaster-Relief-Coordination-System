@@ -15,6 +15,8 @@ public interface ItemDonationRepository extends JpaRepository<ItemDonation, Long
     List<ItemDonation> findByStatus(ItemDonation.Status status);
     List<ItemDonation> findByAssignedVolunteerId(Long volunteerId);
 
+    long countByStatus(ItemDonation.Status status);
+
     // Donor township နဲ့ volunteer township match လုပ်ပြီး assign
     @Query("""
         SELECT va FROM VolunteerApplication va
