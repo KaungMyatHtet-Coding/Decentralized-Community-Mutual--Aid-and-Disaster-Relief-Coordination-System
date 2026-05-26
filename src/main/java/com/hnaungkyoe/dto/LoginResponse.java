@@ -10,4 +10,5 @@ public class LoginResponse {
     private String role;
     private String username;
     private Long userId; // ✨ အသစ်တိုးလိုက်တာ
+    private Boolean profileCompleted;
 }

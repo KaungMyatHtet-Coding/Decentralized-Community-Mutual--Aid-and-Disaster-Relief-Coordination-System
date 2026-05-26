@@ -34,6 +34,6 @@ public class AuthService {
         // Token ထုတ်ပေးတယ်
         String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
 
-        return new LoginResponse(token, user.getRole().name(), user.getUsername(), user.getId()); // ✨ userId ထည့်လိုက်တာ
+        return new LoginResponse(token, user.getRole().name(), user.getUsername(), user.getId(),user.getProfileCompleted()); // ✨ userId ထည့်လိုက်တာ
     }
 }
