@@ -120,6 +120,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/volunteer-applications").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/volunteer-applications/my").authenticated()
 
+                        // SecurityConfig.java ထဲက FilterChainConfig သို့မဟုတ် SecurityFilterChain ထဲတွင် ပြင်ဆင်ရန်
+
+                        .requestMatchers("/api/item-donations/admin/**").hasAnyRole("SUPER_ADMIN", "SUB_ADMIN")
+                        .requestMatchers("/api/item-donations/all-history").hasAnyRole("SUPER_ADMIN", "SUB_ADMIN")
+
 
                         // === 🔒 ကျန်ရှိသမျှ အားလုံးသည် Login (Token) မရှိမဖြစ် လိုအပ်သည် ===
                         .anyRequest().authenticated()

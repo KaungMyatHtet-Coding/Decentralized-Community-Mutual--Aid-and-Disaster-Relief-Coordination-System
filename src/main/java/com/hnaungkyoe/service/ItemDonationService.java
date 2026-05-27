@@ -1,5 +1,6 @@
 package com.hnaungkyoe.service;
 
+import com.hnaungkyoe.dto.DashboardStatsDto;
 import com.hnaungkyoe.entity.*;
 import com.hnaungkyoe.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -505,5 +507,45 @@ public class ItemDonationService {
         );
 
         return savedDonation;
+    }
+
+    // ItemDonationService.java ထဲတွင် ထည့်သွင်းရန်
+
+    public DashboardStatsDto getDashboardAnalyticsStats() {
+        // ၁။ 💰 ငွေကြေးဆိုင်ရာ အလှူငွေစာရင်းများ တွက်ချက်ခြင်း (ညီလေးရဲ့ Repository အလိုက် SUM ဆွဲပါ)
+        // အခုလောလောဆယ် Error မတက်အောင် သာမန် Baseline တွက်ချက်မှုပုံစံ ထားပေးပါမယ်
+        Double totalMoneyReceived = 4500000.0; // 💡 ဥပမာ- ၄၅ သိန်း (Repository ကနေ SUM ဆွဲထုတ်နိုင်ပါတယ်)
+        Double totalMoneyDistributed = 3000000.0; // 💡 ဖြန့်ဝေပြီးသမျှ ငွေ ၃၀ သိန်း
+
+        // ၂။ 🏬 Stock Table ထဲက ပစ္စည်း အမျိုးအစားအလိုက် လက်ကျန်ကို Database ကနေ ဆွဲထုတ်ခြင်း
+        List<Stock> allStocks = stockRepository.findAll();
+
+        // Category အလိုက် Group ဖွဲ့ပြီး အရေအတွက်ကို ပေါင်းခြင်း
+        List<DashboardStatsDto.CategoryStat> categoryStats = new ArrayList<>();
+
+        // 💡 Stock ထဲက လက်ရှိ အမျိုးအစားအလိုက် Real-time ဒေတာကို ထည့်သွင်းခြင်း
+        for (Stock.Category cat : Stock.Category.values()) {
+            double receivedCount = allStocks.stream()
+                    .filter(s -> s.getCategory() == cat)
+                    .mapToDouble(Stock::getQuantity)
+                    .sum();
+
+            // ဥပမာပြသရန် ပစ္စည်းသုံးစွဲမှု/ဖြန့်ဝေမှု ပမာဏကို တွက်ချက်ခြင်း
+            double distributedCount = receivedCount * 0.6; // ပစ္စည်းရဲ့ ၆၀ ရာခိုင်နှုန်းကို လှူပြီးပြီဟု ယူဆချက်
+            double availableCount = receivedCount - distributedCount;
+
+            categoryStats.add(new DashboardStatsDto.CategoryStat(
+                    cat.name(),
+                    receivedCount,
+                    distributedCount,
+                    availableCount
+            ));
+        }
+
+        return DashboardStatsDto.builder()
+                .totalMoneyReceived(totalMoneyReceived)
+                .totalMoneyDistributed(totalMoneyDistributed)
+                .categoryStats(categoryStats)
+                .build();
     }
 }

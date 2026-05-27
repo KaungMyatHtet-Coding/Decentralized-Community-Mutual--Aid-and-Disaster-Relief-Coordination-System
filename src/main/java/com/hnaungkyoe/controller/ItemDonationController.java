@@ -1,6 +1,8 @@
 package com.hnaungkyoe.controller;
 
+import com.hnaungkyoe.dto.DashboardStatsDto;
 import com.hnaungkyoe.entity.*;
+import com.hnaungkyoe.repository.DonationRepository;
 import com.hnaungkyoe.repository.ItemDonationRepository;
 import com.hnaungkyoe.service.ItemDonationService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,6 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -20,6 +24,8 @@ public class ItemDonationController {
     private ItemDonationService service;
     @Autowired
     private ItemDonationService itemDonationService;
+    @Autowired
+    private DonationRepository donationRepository;
 
     // 💡 Admin ရဲ့ Review Queue (Pending) အတွက် သီးသန့် Path
     @GetMapping("/pending")
@@ -199,5 +205,69 @@ public class ItemDonationController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+    // ItemDonationController.java ထဲတွင် ထည့်သွင်းရန်
+// 📊 ၁။ Analytics Stats အတွက် Endpoint
+    @GetMapping("/admin/analytics-stats")
+    public ResponseEntity<DashboardStatsDto> getDashboardAnalytics() {
+        return ResponseEntity.ok(itemDonationService.getDashboardAnalyticsStats());
+    }
+
+    @GetMapping("/all-history")
+    public ResponseEntity<List<Map<String, Object>>> getAllDonationHistory() {
+        List<Map<String, Object>> historyList = new ArrayList<>();
+
+        // 📦 ၁။ အလှူပစ္စည်းစာရင်း (ITEM Donations ከ ItemDonation Table) များကို ဆွဲထုတ်ခြင်း
+        List<ItemDonation> itemDonations = itemDonationRepository.findAll();
+        for (ItemDonation idon : itemDonations) {
+            Map<String, Object> row = new HashMap<>();
+            row.put("id", "ITEM_" + idon.getId());
+            row.put("donorName", idon.getIsAnonymous() ? "Anonymous" : (idon.getDonor() != null ? idon.getDonor().getFullName() : "Anonymous"));
+            row.put("type", "ITEM");
+            row.put("item", idon.getItemName());
+            row.put("amount", idon.getQuantity() + " " + idon.getUnit());
+            row.put("date", idon.getCreatedAt() != null ? idon.getCreatedAt().toLocalDate().toString() : "-");
+            row.put("status", idon.getStatus().name());
+            historyList.add(row);
+        }
+
+        // 💰 ၂။ အလှူငွေစာရင်း (Donation Table) များကိုပါ ဆွဲထုတ်ပြီး ပေါင်းထည့်ခြင်း
+        List<Donation> moneyDonations = donationRepository.findAll();
+        for (Donation mdon : moneyDonations) {
+            // 💡 ညီလေးရဲ့ Entity ထဲက Status Enum (CONFIRMED) အောင်မြင်ပြီးသားတွေကို စစ်ထုတ်ခြင်း
+            if (Donation.Status.CONFIRMED == mdon.getStatus()) {
+                Map<String, Object> row = new HashMap<>();
+                row.put("id", "MONEY_" + mdon.getId());
+
+                // 💡 Fix 1: getUser() အစား getDonor() ကို သုံးပြီး အလှူရှင်အမည် ယူခြင်း
+                row.put("donorName", mdon.getDonor() != null ? mdon.getDonor().getFullName() : "Anonymous");
+
+                // 💡 Fix 2: mdon.getDonationType().name() ကို သုံး၍ MONEY / ITEMS စာရင်းပြခြင်း
+                row.put("type", mdon.getDonationType().name() == "ITEMS" ? "ITEM" : "MONEY");
+
+                // Campaign ခေါင်းစဉ်ကို Details ထဲမှာ ပြပေးခြင်း
+                row.put("item", mdon.getCampaign() != null ? mdon.getCampaign().getTitle() : "General Fund");
+
+                // 💡 Fix 3: BigDecimal ကို Inconvertible types မဖြစ်အောင် .intValue() သို့မဟုတ် .doubleValue() ဖြင့် ပြောင်းလဲခြင်း
+                int amountInt = mdon.getAmount() != null ? mdon.getAmount().intValue() : 0;
+                row.put("amount", String.format("%,d", amountInt) + " MMK");
+
+                row.put("date", mdon.getDonatedAt() != null ? mdon.getDonatedAt().toLocalDate().toString() : "-");
+                row.put("status", "SUCCESS");
+
+                historyList.add(row);
+            }
+        }
+
+        // 📅 ၃။ ရက်စွဲအလိုက် အသစ်ဆုံးတွေကို ထိပ်ဆုံးကပြရန် Sort စီခြင်း
+        historyList.sort((b, a) -> {
+            String dateA = (String) a.get("date");
+            String dateB = (String) b.get("date");
+            if (dateA == null || "-".equals(dateA)) return 1;
+            if (dateB == null || "-".equals(dateB)) return -1;
+            return dateA.compareTo(dateB);
+        });
+
+        return ResponseEntity.ok(historyList);
     }
 }
