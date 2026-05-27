@@ -33,7 +33,8 @@ public class User {
     private Role role;
 
     @Column(name = "is_verified", nullable = false)
-    private Boolean verified;
+    @Builder.Default
+    private Boolean verified = false;
 
     // ─── Personal Info ─────────────────────────────────────
     @Column(name = "full_name", length = 100)
@@ -73,6 +74,7 @@ public class User {
 
     // ─── Volunteer Fields ──────────────────────────────────
     @Column(name = "has_vehicle")
+    @Builder.Default
     private Boolean hasVehicle = false;
 
     @Column(name = "vehicle_type", length = 100)
@@ -94,10 +96,12 @@ public class User {
     private String availableTimes;
 
     @Column(name = "years_of_experience")
+    @Builder.Default
     private Integer yearsOfExperience = 0;
 
     // ─── Profile Status ────────────────────────────────────
     @Column(name = "profile_completed")
+    @Builder.Default
     private Boolean profileCompleted = false;
 
     // ─── Timestamps ────────────────────────────────────────

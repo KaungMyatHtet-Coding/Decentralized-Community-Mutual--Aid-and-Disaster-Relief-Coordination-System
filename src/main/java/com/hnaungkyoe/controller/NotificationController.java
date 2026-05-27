@@ -6,37 +6,25 @@ import com.hnaungkyoe.service.NotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/notifications")
+@RequestMapping("/api/notifications") // 💡 api.js ရဲ့ baseURL (/api) နဲ့ ကွက်တိဖြစ်အောင် ပြန်ညှိထားပါတယ်
 @CrossOrigin(origins = "*")
 public class NotificationController {
 
     @Autowired private NotificationService service;
 
-    // ✅ JWT ကနေ user ယူ — /my
+    // ✅ သက်ဆိုင်ရာ User ရဲ့ Notification အားလုံး ဆွဲထုတ်ခြင်း
     @GetMapping("/my")
     public ResponseEntity<List<Notification>> getMyNotifications(
             @AuthenticationPrincipal User currentUser) {
-        return ResponseEntity.ok(
-                service.getAllNotificationsForUser(currentUser.getId())
-        );
+        return ResponseEntity.ok(service.getAllNotificationsForUser(currentUser.getId()));
     }
 
-    // ✅ Unread သာ ကြည့်ချင်ရင်
-    @GetMapping("/my/unread")
-    public ResponseEntity<List<Notification>> getMyUnread(
-            @AuthenticationPrincipal User currentUser) {
-        return ResponseEntity.ok(
-                service.getUnreadNotificationsForUser(currentUser.getId())
-        );
-    }
-
-    // ✅ တစ်ခုချင်း read mark
-    @PatchMapping("/{id}/read")
+    // ✅ Notification တစ်ခုချင်းစီကို Read အဖြစ် မှတ်သားခြင်း (PUT Method သို့ ပြောင်းလဲထားပါသည်)
+    @PutMapping("/{id}/read")
     public ResponseEntity<?> markOneAsRead(
             @PathVariable Long id,
             @AuthenticationPrincipal User currentUser) {
@@ -47,35 +35,11 @@ public class NotificationController {
         }
     }
 
-    // ✅ အားလုံး read mark
-    @Transactional
-    @PatchMapping("/mark-all-read")
+    // ✅ Notification အားလုံးကိုတစ်ပြိုင်နက် Read အဖြစ် မှတ်သားခြင်း (PUT Method သို့ ပြောင်းလဲထားပါသည်)
+    @PutMapping("/mark-all-read")
     public ResponseEntity<?> markAllRead(
             @AuthenticationPrincipal User currentUser) {
         service.markAllAsRead(currentUser.getId());
-        return ResponseEntity.ok("All notifications marked as read");
-    }
-
-    // ✅ Old endpoints — backward compatible (မဖျက်ဘဲ ထားတယ်)
-    @GetMapping("/unread/{userId}")
-    public ResponseEntity<List<Notification>> getUnread(
-            @PathVariable Long userId) {
-        return ResponseEntity.ok(
-                service.getUnreadNotificationsForUser(userId)
-        );
-    }
-
-    @GetMapping("/all/{userId}")
-    public ResponseEntity<List<Notification>> getAll(
-            @PathVariable Long userId) {
-        return ResponseEntity.ok(
-                service.getAllNotificationsForUser(userId)
-        );
-    }
-
-    @PatchMapping("/read-all/{userId}")
-    public ResponseEntity<?> markAllAsRead(@PathVariable Long userId) {
-        service.markAllAsRead(userId);
         return ResponseEntity.ok("All notifications marked as read");
     }
 }

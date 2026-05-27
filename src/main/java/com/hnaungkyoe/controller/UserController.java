@@ -1,6 +1,7 @@
 package com.hnaungkyoe.controller;
 
 import com.hnaungkyoe.entity.User;
+import com.hnaungkyoe.repository.UserRepository;
 import com.hnaungkyoe.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -65,5 +66,15 @@ public class UserController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+
+    @Autowired private UserRepository userRepository;
+    @GetMapping("/volunteers")
+    public ResponseEntity<List<User>> getAllVolunteers() {
+        List<User> volunteers = userRepository.findByRoleIn(
+                List.of(User.Role.ROLE_VOLUNTEER, User.Role.ROLE_SENIOR_VOLUNTEER)
+        );
+        return ResponseEntity.ok(volunteers);
     }
 }

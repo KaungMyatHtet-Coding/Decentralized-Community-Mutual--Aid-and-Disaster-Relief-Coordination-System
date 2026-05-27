@@ -15,4 +15,6 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
 
     @Query("SELECT s FROM Stock s WHERE s.quantity < :threshold")
     List<Stock> findLowStockItems(@Param("threshold") Double threshold);
+
+    
 }

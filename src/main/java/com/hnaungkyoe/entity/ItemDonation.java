@@ -1,30 +1,34 @@
 package com.hnaungkyoe.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "item_donations")
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class ItemDonation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // ဘယ် user က donate လုပ်တယ်
+    // 💡 Frontend ကို အလှူရှင်အချက်အလက် ပေးဖတ်ဖို့ WRITE_ONLY အစားထိုးသုံးပါမယ်
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "donor_id", nullable = false)
+    @JoinColumn(name = "donor_id", nullable = true)
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private User donor;
 
-    // ဘယ် campaign အတွက်
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "campaign_id", nullable = false)
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY) // API ကနေ ပြန်ထုတ်ပြရင် မြင်ရအောင် ဖတ်ခွင့်ပေးလိုက်ပါမယ်
     private Campaign campaign;
 
-    // Item details
     @Column(name = "item_name", nullable = false, length = 100)
     private String itemName;
 
@@ -34,19 +38,22 @@ public class ItemDonation {
     @Column(nullable = false, length = 50)
     private String unit;
 
-    // ✅ ပြင် — column name သတ်မှတ်
     @Enumerated(EnumType.STRING)
     @Column(name = "item_condition", nullable = false)
     private Condition condition;
 
-    // Donor location
     @Column(name = "donor_township", nullable = false, length = 100)
     private String donorTownship;
+
+    @Column(name = "donor_district", length = 100)
+    private String donorDistrict;
+
+    @Column(name = "donor_division", length = 100)
+    private String donorDivision;
 
     @Column(name = "donor_phone", nullable = false, length = 20)
     private String donorPhone;
 
-    // Handover details
     @Enumerated(EnumType.STRING)
     @Column(name = "handover_type", nullable = false)
     private HandoverType handoverType;
@@ -54,20 +61,18 @@ public class ItemDonation {
     @Column(name = "handover_date")
     private LocalDateTime handoverDate;
 
-    // Donor proof photo
     @Column(name = "item_photo_url", length = 255)
     private String itemPhotoUrl;
 
-    // Anonymous toggle
     @Column(name = "is_anonymous", nullable = false)
     private Boolean isAnonymous;
 
-    // Assigned volunteer
+    // 💡 စာရင်းထုတ်ပြရင် Volunteer အမည်ပါ မြင်ရအောင် လုပ်ထားပါတယ်
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_volunteer_id")
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private User assignedVolunteer;
 
-    // Volunteer confirmation
     @Column(name = "volunteer_confirm_photo", length = 255)
     private String volunteerConfirmPhoto;
 
@@ -76,6 +81,12 @@ public class ItemDonation {
 
     @Column(name = "volunteer_note", columnDefinition = "TEXT")
     private String volunteerNote;
+
+    @Column(name = "volunteer_accepted_at")
+    private LocalDateTime volunteerAcceptedAt;
+
+    @Column(name = "volunteer_reject_reason", length = 255)
+    private String volunteerRejectReason;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -87,32 +98,42 @@ public class ItemDonation {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
-        if (this.status == null) this.status = Status.PENDING_VOLUNTEER;
-        if (this.isAnonymous == null) this.isAnonymous = false;
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
-
     public enum Condition {
         NEW, GOOD, FAIR
     }
 
     public enum HandoverType {
-        DELIVER, // donor ပို့မယ်
-        PICKUP   // volunteer လာယူမယ်
+        DELIVER, PICKUP
     }
 
     public enum Status {
-        PENDING_VOLUNTEER,   // volunteer မရောက်သေးဘူး
-        VOLUNTEER_RECEIVED,  // volunteer လက်ခံပြီ
-        STORED_IN_STOCK,     // stock မှာ သိမ်းပြီ
-        REJECTED             // ငြင်းပယ်
+        PENDING_ADMIN,
+        ADMIN_APPROVED,
+        ADMIN_REJECTED,
+        ASSIGNED_TO_VOLUNTEER, // 💡 ဒါကို အောက်က repository မှာ ဒီအတိုင်း သုံးပါမယ်
+        VOLUNTEER_ACCEPTED,
+        VOLUNTEER_REJECTED,
+        VOLUNTEER_RECEIVED,
+        STORED_IN_STOCK,
+        COMPLETED
     }
+
+    @Column(name = "otp_code", length = 10)
+    private String otpCode;
+
+    @Column(name = "otp_verified_at")
+    private LocalDateTime otpVerifiedAt;
+
+    @Column(name = "stored_at")
+    private LocalDateTime storedAt;
+
+    @Column(name = "senior_volunteer_id")
+    private Long seniorVolunteerId;
+
+    @Column(name = "condition_notes", columnDefinition = "TEXT")
+    private String conditionNotes;
+
+    @Transient
+    @JsonProperty("campaignId")
+    private Long campaignId;
 }

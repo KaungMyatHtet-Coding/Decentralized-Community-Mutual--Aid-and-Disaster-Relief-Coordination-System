@@ -5,80 +5,77 @@ import com.hnaungkyoe.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
 public class ItemDonationService {
 
     @Autowired private ItemDonationRepository itemDonationRepository;
-    @Autowired private VolunteerApplicationRepository volunteerApplicationRepository;
-    @Autowired private StockRepository stockRepository;
+    @Autowired private UserRepository userRepository;
     @Autowired private NotificationService notificationService;
+    @Autowired private CampaignRepository campaignRepository;
+    @Autowired private StockRepository stockRepository;
+
+    // 💡 Admin Pending Queue ရှာဖွေပေးမည့် သန့်ရှင်းသော လုပ်ဆောင်ချက်
+    public List<ItemDonation> getPendingItemDonations() {
+        return itemDonationRepository.findPendingAdminReview();
+    }
 
     @Transactional
-    public ItemDonation submitItemDonation(ItemDonation donation) {
-
-        List<VolunteerApplication> volunteers = volunteerApplicationRepository
-                .findByStatusAndOperatingTownship(
-                        VolunteerApplication.Status.APPROVED,
-                        donation.getDonorTownship()
-                );
-
-        // ✅ Volunteer assign ပဲ လုပ်၊ notify မလုပ်သေးဘူး
-        if (!volunteers.isEmpty()) {
-            User assignedVolunteer = volunteers.get(0).getUser();
-            donation.setAssignedVolunteer(assignedVolunteer);
+    public ItemDonation submitItemDonation(Map<String, Object> payload, User currentUser) {
+        Object camIdObj = payload.get("campaignId");
+        if (camIdObj == null) {
+            throw new RuntimeException("Campaign ID is required.");
         }
 
-        // ✅ အရင်ဆုံး save လုပ်လိုက် — ID ရပြီ
+        Long campaignId = Long.parseLong(camIdObj.toString());
+        Campaign campaign = campaignRepository.findById(campaignId)
+                .orElseThrow(() -> new RuntimeException("Campaign not found with ID: " + campaignId));
+
+        ItemDonation donation = new ItemDonation();
+        donation.setCampaign(campaign);
+        donation.setDonor(currentUser);
+        donation.setItemName((String) payload.get("itemName"));
+        donation.setQuantity(Double.parseDouble(payload.get("quantity").toString()));
+        donation.setUnit((String) payload.get("unit"));
+        donation.setCondition(ItemDonation.Condition.valueOf((String) payload.get("condition")));
+        donation.setDonorTownship((String) payload.get("donorTownship"));
+        donation.setDonorPhone((String) payload.get("donorPhone"));
+        donation.setHandoverType(ItemDonation.HandoverType.valueOf((String) payload.get("handoverType")));
+
+        if (payload.get("handoverDate") != null) {
+            donation.setHandoverDate(java.time.ZonedDateTime.parse((String) payload.get("handoverDate")).toLocalDateTime());
+        }
+
+        donation.setItemPhotoUrl((String) payload.get("itemPhotoUrl"));
+        donation.setIsAnonymous(payload.get("isAnonymous") != null && (Boolean) payload.get("isAnonymous"));
+
+        donation.setStatus(ItemDonation.Status.PENDING_ADMIN);
+        donation.setCreatedAt(LocalDateTime.now());
+        donation.setUpdatedAt(LocalDateTime.now());
+        donation.setAssignedVolunteer(null);
+
         ItemDonation saved = itemDonationRepository.save(donation);
 
-        // ✅ Save ပြီးမှ volunteer notify — referenceId ပါပြီ
-        if (saved.getAssignedVolunteer() != null) {
-            String volunteerMsg;
-            if (saved.getHandoverType() == ItemDonation.HandoverType.PICKUP) {
-                volunteerMsg = "📍 PICKUP — " + saved.getDonorTownship() +
-                        " မှ " + saved.getItemName() +
-                        " (" + saved.getQuantity() + " " + saved.getUnit() + ")" +
-                        " ကို " + saved.getDonor().getUsername() +
-                        " ဆီ သွားယူပေးပါ။ 📞 " + saved.getDonorPhone() +
-                        " | 📅 " + saved.getHandoverDate();
-            } else {
-                volunteerMsg = "📦 DELIVER — " + saved.getDonor().getUsername() +
-                        " က " + saved.getItemName() +
-                        " (" + saved.getQuantity() + " " + saved.getUnit() + ")" +
-                        " ကို မင်းဆီ ပို့လာမယ်။ | 📅 " + saved.getHandoverDate();
-            }
-
-            notificationService.sendNotification(
-                    saved.getAssignedVolunteer(),
-                    "📦 Item Donation Assigned",
-                    volunteerMsg,
-                    Notification.Type.STATUS_CHANGED,
-                    saved.getId(),   // ✅ null မဟုတ်တော့ဘူး
-                    "ITEM_DONATION"
-            );
-        }
-
-        // ✅ Admin notify — ဒါသာ မပါတာ ထည့်လိုက်
+        // Notify Admin
         notificationService.sendToAllAdmins(
                 "📦 New Item Donation",
-                (saved.getIsAnonymous() ? "Anonymous" : saved.getDonor().getUsername()) +
-                        " donated: " + saved.getItemName() +
-                        " (" + saved.getQuantity() + " " + saved.getUnit() + ")" +
-                        " from " + saved.getDonorTownship(),
+                (saved.getIsAnonymous() ? "Anonymous" : saved.getDonor().getFullName()) +
+                        " donated: " + saved.getItemName() + " from " + saved.getDonorTownship(),
                 Notification.Type.DONATION_RECEIVED,
                 saved.getId(),
                 "ITEM_DONATION"
         );
 
-        // Donor notify
+        // Notify Donor
         notificationService.sendNotification(
                 saved.getDonor(),
-                "✅ Item Donation Submitted",
-                saved.getItemName() + " donation တင်သွားပြီ။ Volunteer မကြာမီ ဆက်သွယ်ပါလိမ့်မယ်။",
+                "✅ Donation Submitted",
+                saved.getItemName() + " donation ကို Admin စစ်ဆေးနေပါတယ်။ အတည်ပြုပြီးရင် Volunteer ကို ပို့ပေးပါမယ်။",
                 Notification.Type.DONATION_RECEIVED,
                 saved.getId(),
                 "ITEM_DONATION"
@@ -87,14 +84,140 @@ public class ItemDonationService {
         return saved;
     }
 
-    // Volunteer — item လက်ခံပြီဆိုတာ confirm
     @Transactional
-    public ItemDonation volunteerConfirm(Long donationId, String confirmPhotoUrl,
-                                         String note, User volunteer) {
+    public ItemDonation approveAndAssign(Long donationId, Long volunteerId) {
+        ItemDonation donation = itemDonationRepository.findById(donationId)
+                .orElseThrow(() -> new RuntimeException("Donation not found"));
+
+        if (donation.getStatus() != ItemDonation.Status.PENDING_ADMIN) {
+            throw new RuntimeException("This donation cannot be approved now");
+        }
+
+        User volunteer = userRepository.findById(volunteerId)
+                .orElseThrow(() -> new RuntimeException("Volunteer not found"));
+
+        donation.setAssignedVolunteer(volunteer);
+        donation.setStatus(ItemDonation.Status.ASSIGNED_TO_VOLUNTEER);
+        donation.setUpdatedAt(LocalDateTime.now());
+
+        ItemDonation saved = itemDonationRepository.save(donation);
+
+        // 🎯 ဖြည့်စွက်ချက်: User (Donor) ဆီကို အလှူအတည်ပြုကြောင်း Notification ပို့ခြင်း
+        notificationService.sendNotification(
+                saved.getDonor(),
+                "✨ Donation Approved!",
+                "မင်းလှူဒါန်းထားတဲ့ " + saved.getItemName() + " ကို အတည်ပြုလိုက်ပါပြီ။ ကောက်ခံဖို့အတွက် Volunteer တစ်ဦးကို တာဝန်ပေးထားပါတယ်ဗျာ။",
+                Notification.Type.STATUS_CHANGED,
+                saved.getId(),
+                "ITEM_DONATION"
+        );
+
+        // Notify Volunteer
+        String msg = "📦 New Assignment:\n" + saved.getItemName() + " (" + saved.getQuantity() + " " + saved.getUnit() + ")\n" +
+                "From: " + saved.getDonorTownship() + "\nDonor Phone: " + saved.getDonorPhone();
+
+        notificationService.sendNotification(
+                volunteer,
+                "📦 New Pickup Assignment",
+                msg,
+                Notification.Type.STATUS_CHANGED,
+                saved.getId(),
+                "ITEM_DONATION"
+        );
+
+        return saved;
+    }
+
+    @Transactional
+    public ItemDonation volunteerAccept(Long donationId, User volunteer) {
+        ItemDonation donation = itemDonationRepository.findById(donationId)
+                .orElseThrow(() -> new RuntimeException("Donation not found"));
+
+        if (donation.getAssignedVolunteer() == null || !donation.getAssignedVolunteer().getId().equals(volunteer.getId())) {
+            throw new RuntimeException("You are not assigned to this donation");
+        }
+
+        if (donation.getStatus() != ItemDonation.Status.ASSIGNED_TO_VOLUNTEER) {
+            throw new RuntimeException("Cannot accept this assignment now");
+        }
+
+        donation.setStatus(ItemDonation.Status.VOLUNTEER_ACCEPTED);
+        donation.setVolunteerAcceptedAt(LocalDateTime.now());
+        donation.setUpdatedAt(LocalDateTime.now());
+        ItemDonation saved = itemDonationRepository.save(donation);
+
+        // 🔔 Admin ဆီကို Volunteer လက်ခံကြောင်း Noti အရင်တက်မယ်
+        notificationService.sendToAllAdmins(
+                "🤝 Volunteer Accepted Assignment",
+                "Volunteer (" + volunteer.getFullName() + ") က " + saved.getItemName() + " သွားယူဖို့ လက်ခံလိုက်ပါပြီ။",
+                Notification.Type.STATUS_CHANGED,
+                saved.getId(),
+                "ITEM_DONATION"
+        );
+
+        // 🔔 User (Donor) ဆီကို Noti ဆက်သွားမယ်
+        notificationService.sendNotification(
+                saved.getDonor(),
+                "🚚 Volunteer On The Way",
+                "Volunteer (" + volunteer.getFullName() + ") မှ သင်၏အလှူပစ္စည်းကို လာရောက်ကောက်ခံရန် အတည်ပြုလိုက်ပါပြီ။",
+                Notification.Type.STATUS_CHANGED,
+                saved.getId(),
+                "ITEM_DONATION"
+        );
+        return saved;
+    }
+
+    @Transactional
+    public ItemDonation volunteerReject(Long donationId, String reason, User volunteer) {
+        ItemDonation donation = itemDonationRepository.findById(donationId)
+                .orElseThrow(() -> new RuntimeException("Donation not found"));
+
+        if (donation.getAssignedVolunteer() == null || !donation.getAssignedVolunteer().getId().equals(volunteer.getId())) {
+            throw new RuntimeException("You are not assigned to this donation");
+        }
+
+        // 🔔 Admin ဆီသို့ အကြောင်းပြချက်နှင့်တကွ Noti အရင်ပို့မည်
+        notificationService.sendToAllAdmins(
+                "⚠️ Volunteer Rejected Assignment",
+                "Volunteer (" + volunteer.getFullName() + ") က " + donation.getItemName() + " ကို ငြင်းပယ်လိုက်ပါတယ်။ အကြောင်းပြချက်: " + reason,
+                Notification.Type.STATUS_CHANGED,
+                donation.getId(),
+                "ITEM_DONATION"
+        );
+
+        donation.setAssignedVolunteer(null);
+        donation.setVolunteerRejectReason(reason);
+        donation.setUpdatedAt(LocalDateTime.now());
+
+        // 💡 ညီလေးရဲ့ Auto Assign Logic ကို သုံးပြီး ကွင်းဆက်အလိုအလျောက် Re-assign လုပ်ဆောင်ခြင်း
+        try {
+            donation.setStatus(ItemDonation.Status.ADMIN_APPROVED); // Auto Assign အလုပ်လုပ်ရန် Status ခေတ္တပြောင်းခြင်း
+            itemDonationRepository.save(donation);
+            return autoAssignNearestVolunteer(donation.getId());
+        } catch (Exception e) {
+            // ❌ စနစ်ထဲတွင် တာဝန်ပေးရန် Volunteer လုံးဝမရှိတော့မှသာ...
+            donation.setStatus(ItemDonation.Status.VOLUNTEER_REJECTED);
+            ItemDonation failedDonation = itemDonationRepository.save(donation);
+
+            // 🔔 User ဆီသို့ စိတ်မကောင်းကြောင်း Sorry Noti ကို ဤအဆင့်မှသာ ပို့မည်!
+            notificationService.sendNotification(
+                    failedDonation.getDonor(),
+                    "🙏 We are Sorry",
+                    "စိတ်မကောင်းပါဘူးခင်ဗျာ၊ လောလောဆယ် သင့်မြို့နယ်တွင် အလှူပစ္စည်း လာရောက်ယူဆောင်ပေးမည့် Volunteer မရှိသေးပါသဖြင့် နောက်မှ ပြန်လည်ကြိုးစားပေးပါဦး။",
+                    Notification.Type.STATUS_CHANGED,
+                    failedDonation.getId(),
+                    "ITEM_DONATION"
+            );
+            return failedDonation;
+        }
+    }
+
+    @Transactional
+    public ItemDonation volunteerConfirm(Long donationId, String confirmPhotoUrl, String note, User volunteer) {
         ItemDonation donation = itemDonationRepository.findById(donationId)
                 .orElseThrow(() -> new RuntimeException("Item donation not found"));
 
-        if (!donation.getAssignedVolunteer().getId().equals(volunteer.getId())) {
+        if (donation.getAssignedVolunteer() == null || !donation.getAssignedVolunteer().getId().equals(volunteer.getId())) {
             throw new RuntimeException("You are not assigned to this donation");
         }
 
@@ -102,76 +225,54 @@ public class ItemDonationService {
         donation.setVolunteerConfirmPhoto(confirmPhotoUrl);
         donation.setVolunteerNote(note);
         donation.setVolunteerReceivedAt(LocalDateTime.now());
-
+        donation.setUpdatedAt(LocalDateTime.now());
         ItemDonation saved = itemDonationRepository.save(donation);
 
-        // Donor ကို notify
-        // ✅ ဒါနဲ့ အစားထိုး
-        String donorMsg;
-        if (saved.getAssignedVolunteer() != null) {
-            if (saved.getHandoverType() == ItemDonation.HandoverType.DELIVER) {
-                donorMsg = "မင်းရဲ့ " + saved.getItemName() + " donation တင်ပြီ။\n" +
-                        "📍 Volunteer: " + saved.getAssignedVolunteer().getUsername() + "\n" +
-                        "📞 Phone: " + saved.getAssignedVolunteer().getPhoneNumber() + "\n" +
-                        "🏘️ Township: " + saved.getDonorTownship() + "\n" +
-                        "📅 Date: " + saved.getHandoverDate() + "\n" +
-                        "➡️ ဒီ volunteer ဆီ item ပို့ပေးပါ။";
-            } else {
-                donorMsg = "မင်းရဲ့ " + saved.getItemName() + " donation တင်ပြီ။\n" +
-                        "📅 " + saved.getHandoverDate() + " မှာ volunteer လာယူပါမယ်။\n" +
-                        "📞 Volunteer: " + saved.getAssignedVolunteer().getPhoneNumber();
-            }
-        } else {
-            donorMsg = saved.getItemName() + " donation တင်ပြီ။ မင်းရဲ့ township မှာ volunteer ရှာနေပါတယ်။";
-        }
-
-        notificationService.sendNotification(
-                saved.getDonor(),
-                "✅ Item Donation Submitted",
-                donorMsg,
-                Notification.Type.DONATION_RECEIVED,
+        // 🔔 Admin ဆီသို့ ပစ္စည်းကောက်ခံရရှိပြီးကြောင်း Noti ပို့ခြင်း
+        notificationService.sendToAllAdmins(
+                "📦 Donation Collected by Volunteer",
+                "Volunteer (" + volunteer.getFullName() + ") က " + saved.getItemName() + " ကို Donor ထံမှ ကောက်ခံရရှိပြီးပါပြီ။ Admin Stock သွင်းရန် စောင့်ဆိုင်းနေပါတယ်။",
+                Notification.Type.STATUS_CHANGED,
                 saved.getId(),
                 "ITEM_DONATION"
         );
-
         return saved;
     }
 
-    // Admin — stock မှာ သိမ်းပြီဆိုတာ confirm
     @Transactional
     public ItemDonation storeInStock(Long donationId) {
         ItemDonation donation = itemDonationRepository.findById(donationId)
                 .orElseThrow(() -> new RuntimeException("Item donation not found"));
 
         donation.setStatus(ItemDonation.Status.STORED_IN_STOCK);
-
-        // Stock မှာ auto add
-        stockRepository.findByItemName(donation.getItemName())
-                .ifPresent(stock -> {
-                    stock.setQuantity(stock.getQuantity() + donation.getQuantity());
-                    stockRepository.save(stock);
-                });
-
         return itemDonationRepository.save(donation);
     }
 
-    public ItemDonation rejectItemDonation(Long donationId) {
+    @Transactional
+    public ItemDonation rejectItemDonation(Long donationId, String reason) {
         ItemDonation donation = itemDonationRepository.findById(donationId)
                 .orElseThrow(() -> new RuntimeException("Item donation not found"));
-        donation.setStatus(ItemDonation.Status.REJECTED);
 
-        ItemDonation saved = itemDonationRepository.save(donation);
+        donation.setStatus(ItemDonation.Status.ADMIN_REJECTED);
 
+        // 🎯 ဖြည့်စွက်ချက်: User ဆီသို့ ငြင်းပယ်ရခြင်း အကြောင်းရင်း ပို့ပေးခြင်း
         notificationService.sendNotification(
-                saved.getDonor(),
-                "❌ Item Donation Rejected",
-                "မင်းရဲ့ " + saved.getItemName() + " donation ငြင်းပယ်ခံရပြီ။",
+                donation.getDonor(),
+                "❌ Donation Declined",
+                "မင်းရဲ့ အလှူစာရင်းကို Admin မှ ငြင်းပယ်လိုက်ရပါတယ်ဗျာ။ အကြောင်းပြချက်: " + reason,
                 Notification.Type.STATUS_CHANGED,
-                saved.getId(),
+                donation.getId(),
                 "ITEM_DONATION"
         );
+        return itemDonationRepository.save(donation);
+    }
 
-        return saved;
+    public List<ItemDonation> getVolunteerAssigned(Long volunteerId, String type) {
+        if ("history".equalsIgnoreCase(type)) {
+            return itemDonationRepository.findVolunteerHistory(volunteerId);
+        } else {
+            return itemDonationRepository.findActiveAssignments(volunteerId);
+        }
     }
 
     public List<ItemDonation> getMyItemDonations(Long donorId) {
@@ -182,15 +283,227 @@ public class ItemDonationService {
         return itemDonationRepository.findByStatusOrderByCreatedAtDesc(status);
     }
 
-    public List<ItemDonation> getVolunteerAssigned(Long volunteerId) {
-        return itemDonationRepository.findByAssignedVolunteerId(volunteerId);
-    }
-
     public Optional<ItemDonation> getById(Long id) {
         return itemDonationRepository.findById(id);
     }
 
     public List<ItemDonation> getAll() {
         return itemDonationRepository.findAll();
+    }
+
+    @Transactional
+    public ItemDonation autoAssignNearestVolunteer(Long donationId) {
+        ItemDonation donation = itemDonationRepository.findById(donationId)
+                .orElseThrow(() -> new RuntimeException("Donation not found"));
+
+        if (donation.getStatus() != ItemDonation.Status.ADMIN_APPROVED) {
+            throw new RuntimeException("Donation must be approved by admin first");
+        }
+
+        String donorTownship = donation.getDonorTownship();
+        List<User> sameTownship = userRepository.findByTownshipAndRoleIn(
+                donorTownship,
+                List.of(User.Role.ROLE_VOLUNTEER, User.Role.ROLE_SENIOR_VOLUNTEER)
+        );
+
+        if (!sameTownship.isEmpty()) {
+            return assignToVolunteer(donation, sameTownship.get(0));
+        }
+
+        List<User> availableVolunteers = userRepository.findByRoleIn(
+                List.of(User.Role.ROLE_VOLUNTEER, User.Role.ROLE_SENIOR_VOLUNTEER)
+        );
+
+        if (!availableVolunteers.isEmpty()) {
+            return assignToVolunteer(donation, availableVolunteers.get(0));
+        }
+
+        throw new RuntimeException("No available volunteers in the system");
+    }
+
+    private ItemDonation assignToVolunteer(ItemDonation donation, User volunteer) {
+        donation.setAssignedVolunteer(volunteer);
+        donation.setStatus(ItemDonation.Status.ASSIGNED_TO_VOLUNTEER);
+        donation.setUpdatedAt(LocalDateTime.now());
+        ItemDonation saved = itemDonationRepository.save(donation);
+
+        notificationService.sendNotification(
+                volunteer,
+                "📦 New Assignment",
+                donation.getItemName() + " from " + donation.getDonorTownship(),
+                Notification.Type.STATUS_CHANGED,
+                saved.getId(),
+                "ITEM_DONATION"
+        );
+        return saved;
+    }
+
+    @Transactional
+    public String generateHandoverOtp(Long donationId, User volunteer) {
+        ItemDonation donation = itemDonationRepository.findById(donationId)
+                .orElseThrow(() -> new RuntimeException("Donation not found"));
+
+        if (!donation.getAssignedVolunteer().getId().equals(volunteer.getId())) {
+            throw new RuntimeException("Not authorized");
+        }
+
+        if (donation.getStatus() != ItemDonation.Status.VOLUNTEER_ACCEPTED) {
+            throw new RuntimeException("Volunteer must accept first");
+        }
+
+        String otp = String.format("%06d", (int) (Math.random() * 900000) + 100000);
+        donation.setOtpCode(otp);
+        donation.setOtpVerifiedAt(null);
+        donation.setUpdatedAt(LocalDateTime.now());
+        itemDonationRepository.save(donation);
+
+        notificationService.sendNotification(
+                donation.getDonor(),
+                "🔑 Handover OTP",
+                "မင်းရဲ့ အလှူပစ္စည်းလွှဲပြောင်းရန် OTP ကုဒ်မှာ: " + otp + " ဖြစ်ပါတယ်။ Volunteer ရောက်လာတဲ့အခါ ဒါလေးပေးလိုက်ပါနော်။",
+                Notification.Type.STATUS_CHANGED,
+                donation.getId(),
+                "ITEM_DONATION"
+        );
+        return otp;
+    }
+
+    @Transactional
+    public ItemDonation verifyOtpAndConfirm(Long donationId, String otp, User volunteer) {
+        ItemDonation donation = itemDonationRepository.findById(donationId)
+                .orElseThrow(() -> new RuntimeException("Donation not found"));
+
+        if (!donation.getAssignedVolunteer().getId().equals(volunteer.getId())) {
+            throw new RuntimeException("Not authorized");
+        }
+
+        if (!otp.equals(donation.getOtpCode())) {
+            throw new RuntimeException("Invalid OTP");
+        }
+
+        donation.setStatus(ItemDonation.Status.VOLUNTEER_RECEIVED);
+        donation.setOtpVerifiedAt(LocalDateTime.now());
+        donation.setVolunteerReceivedAt(LocalDateTime.now());
+
+        return itemDonationRepository.save(donation);
+    }
+
+    @Transactional
+    public ItemDonation confirmWithPhoto(Long donationId, String photoUrl, String note, User volunteer) {
+        ItemDonation donation = itemDonationRepository.findById(donationId)
+                .orElseThrow(() -> new RuntimeException("Donation not found"));
+
+        if (!donation.getAssignedVolunteer().getId().equals(volunteer.getId())) {
+            throw new RuntimeException("You are not the assigned volunteer");
+        }
+
+        donation.setVolunteerConfirmPhoto(photoUrl);
+        donation.setVolunteerNote(note);
+        donation.setVolunteerReceivedAt(LocalDateTime.now());
+        donation.setStatus(ItemDonation.Status.VOLUNTEER_RECEIVED);
+
+        return itemDonationRepository.save(donation);
+    }
+
+    @Transactional
+    public ItemDonation markAsStored(Long donationId, User seniorUser) {
+        ItemDonation donation = itemDonationRepository.findById(donationId)
+                .orElseThrow(() -> new RuntimeException("Donation not found"));
+
+        donation.setStatus(ItemDonation.Status.STORED_IN_STOCK);
+        donation.setStoredAt(LocalDateTime.now());
+        return itemDonationRepository.save(donation);
+    }
+
+    @Transactional
+    public ItemDonation finalStoreConfirmation(Long donationId, User seniorUser, String notes) {
+        ItemDonation donation = itemDonationRepository.findById(donationId)
+                .orElseThrow(() -> new RuntimeException("Donation not found"));
+
+        donation.setStatus(ItemDonation.Status.STORED_IN_STOCK);
+        donation.setStoredAt(LocalDateTime.now());
+        donation.setSeniorVolunteerId(seniorUser.getId());
+        if (notes != null) {
+            donation.setConditionNotes(notes);
+        }
+
+        ItemDonation saved = itemDonationRepository.save(donation);
+
+        notificationService.sendNotification(
+                donation.getDonor(),
+                "🎉 Donation Stored Successfully!",
+                "မင်းလှူဒါန်းထားတဲ့ ပစ္စည်း (" + donation.getItemName() + ") တွေဟာ ကယ်ဆယ်ရေးစခန်း Stock ထဲကို ဘေးကင်းလုံခြုံစွာ ရောက်ရှိသိမ်းဆည်းပြီးသွားပါပြီဗျာ။ ကျေးဇူးအများကြီးတင်ပါတယ်!",
+                Notification.Type.STATUS_CHANGED,
+                saved.getId(),
+                "ITEM_DONATION"
+        );
+
+        return saved;
+    }
+    @Transactional
+    public ItemDonation approveAndStoreInInventory(Long donationId, String remarks, User admin) {
+        ItemDonation donation = itemDonationRepository.findById(donationId)
+                .orElseThrow(() -> new RuntimeException("Donation not found"));
+
+        if (donation.getStatus() != ItemDonation.Status.VOLUNTEER_RECEIVED) {
+            throw new RuntimeException("This item is not collected by volunteer yet!");
+        }
+
+        // ၁။ Item Donation ရဲ့ Status ကို ညီလေးရဲ့ Entity ထဲက STORED_IN_STOCK အဆင့်သို့ ပြောင်းလဲခြင်း
+        donation.setStatus(ItemDonation.Status.STORED_IN_STOCK);
+        donation.setStoredAt(LocalDateTime.now());
+        donation.setUpdatedAt(LocalDateTime.now());
+        ItemDonation savedDonation = itemDonationRepository.save(donation);
+
+        // ၂။ 🏬 Stock (ဂိုဒေါင်) ထဲသို့ စနစ်တကျ စာရင်းသွင်းခြင်း (သို့မဟုတ်) တိုးမြှင့်ခြင်း Logic
+        Stock existingStock = stockRepository.findByItemName(donation.getItemName()).orElse(null);
+
+        if (existingStock != null) {
+            // ဂိုဒေါင်ထဲမှာ ပစ္စည်းအမည် ရှိပြီးသားဆိုရင် - အရေအတွက်ဟောင်းနဲ့ အသစ်ကို ပေါင်းပေးမယ်
+            existingStock.setQuantity(existingStock.getQuantity() + donation.getQuantity());
+            existingStock.setUpdatedAt(LocalDateTime.now());
+            stockRepository.save(existingStock);
+        } else {
+            // ဂိုဒေါင်ထဲမှာ ပစ္စည်းအသစ်ဆိုရင် - Row အသစ် ဆောက်ပြီး သွင်းမယ်
+
+            // 🎯 Campaign ထဲမှာ getCategory() ရှာမတွေ့တဲ့ ပြဿနာကို ဖြေရှင်းခြင်း
+            // ပစ္စည်းအမည် (Item Name) ကို ကြည့်ပြီး Stock Category Enum ထဲကို ဉာဏ်ကောင်းကောင်းနဲ့ အလိုအလျောက် ခွဲထုတ်ပေးမည့် လုံခြုံသော စနစ်
+            Stock.Category stockCategory = Stock.Category.OTHER; // Default သတ်မှတ်ချက်
+
+            String itemNameLower = donation.getItemName().toLowerCase();
+
+            if (itemNameLower.contains(" rice") || itemNameLower.contains("ဆန်") || itemNameLower.contains("food") || itemNameLower.contains("မုန့်") || itemNameLower.contains("oil")) {
+                stockCategory = Stock.Category.FOOD;
+            } else if (itemNameLower.contains("med") || itemNameLower.contains("ဆေး") || itemNameLower.contains("paracetamol") || itemNameLower.contains("vitamin")) {
+                stockCategory = Stock.Category.MEDICINE;
+            } else if (itemNameLower.contains("water") || itemNameLower.contains("ရေ") || itemNameLower.contains("juice")) {
+                stockCategory = Stock.Category.WATER;
+            } else if (itemNameLower.contains("cloth") || itemNameLower.contains("အဝတ်") || itemNameLower.contains("shirt") || itemNameLower.contains("blanket") || itemNameLower.contains("စောင်")) {
+                stockCategory = Stock.Category.CLOTHING;
+            } else if (itemNameLower.contains("tent") || itemNameLower.contains("မိုးကာ") || itemNameLower.contains("shelter")) {
+                stockCategory = Stock.Category.SHELTER;
+            }
+
+            Stock stock = Stock.builder()
+                    .itemName(donation.getItemName())
+                    .category(stockCategory) // 👈 အပေါ်က ခွဲထုတ်လိုက်တဲ့ Stock.Category Enum စနစ်တကျ ဝင်သွားပါပြီ
+                    .quantity(donation.getQuantity())
+                    .unit(donation.getUnit() != null ? donation.getUnit() : "pcs") // 👈 မရှိမဖြစ်လိုအပ်တဲ့ Unit ထည့်ပေးခြင်း
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+            stockRepository.save(stock);
+        }
+
+        // 🔔 ၃။ အလှူရှင် (Donor) ဆီသို့ လှူဒါန်းမှု အောင်မြင်ပြီးကြောင်း နှလုံးသားနွေးထွေးစေမယ့် Success Noti ပို့ခြင်း
+        notificationService.sendNotification(
+                donation.getDonor(),
+                "🎉 Donation Successful!",
+                "မင်္ဂလာပါဗျာ၊ သင်လှူဒါန်းလိုက်သော '" + donation.getItemName() + "' အား ကျွန်ုပ်တို့၏ ဂိုဒေါင်အတွင်းသို့ စနစ်တကျ လက်ခံသိမ်းဆည်းပြီးပါပြီ။ လိုအပ်နေသူများထံ ဆက်လက်ဖြန့်ဝေပေးသွားပါမည်။ အလှူရှင်အား အထူးကျေးဇူးတင်ရှိပါသည် 🙏",
+                Notification.Type.STATUS_CHANGED,
+                donation.getId(),
+                "ITEM_DONATION"
+        );
+
+        return savedDonation;
     }
 }
