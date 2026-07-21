@@ -111,6 +111,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/notifications/**").authenticated() // 💡 PUT Method တစ်ခုချင်း/အားလုံး Read မလုပ်နိုင်တဲ့ Error ကို ဖြေရှင်းပေးထားပါတယ်
 
 
+
                         // === 👥 USER AUTHENTICATED ENDPOINTS (အလှူရှင်နှင့် စေတနာ့ဝန်ထမ်းများ) ===
                         .requestMatchers(HttpMethod.GET, "/api/donations/my").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/donations").authenticated()

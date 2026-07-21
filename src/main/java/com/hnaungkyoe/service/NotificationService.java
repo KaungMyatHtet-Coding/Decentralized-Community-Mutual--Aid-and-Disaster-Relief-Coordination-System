@@ -70,4 +70,34 @@ public class NotificationService {
             sendNotification(user, title, message, type, referenceId, referenceType);
         }
     }
+
+    // 🚨 SOS Alert to Township Admins & Volunteers
+    public void sendSOSToTownship(String township, String alertMessage, User sender) {
+        String title = "🚨 URGENT SOS ALERT in " + township;
+        String fullMessage = "From " + sender.getFullName() + " (" + sender.getPhoneNumber() + "): " + alertMessage;
+        
+        List<User.Role> targetRoles = List.of(
+            User.Role.ROLE_SUB_ADMIN, 
+            User.Role.ROLE_VOLUNTEER, 
+            User.Role.ROLE_SENIOR_VOLUNTEER,
+            User.Role.ROLE_SUPER_ADMIN
+        );
+        
+        List<User> targets = userRepository.findByTownshipAndRoleIn(township, targetRoles);
+        
+        // Also include super admins if they don't belong to the township
+        List<User> superAdmins = userRepository.findByRoleIn(List.of(User.Role.ROLE_SUPER_ADMIN));
+        for (User sa : superAdmins) {
+            if (!targets.contains(sa)) {
+                targets.add(sa);
+            }
+        }
+        
+        for (User target : targets) {
+            // Don't notify the sender themselves
+            if (!target.getId().equals(sender.getId())) {
+                sendNotification(target, title, fullMessage, Notification.Type.SOS_ALERT, null, "SOS");
+            }
+        }
+    }
 }

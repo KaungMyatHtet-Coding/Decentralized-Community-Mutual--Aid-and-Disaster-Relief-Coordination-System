@@ -35,4 +35,6 @@ public class UserProfileDto {
     private String availableDays;
     private String availableTimes;
     private Integer yearsOfExperience;
+    
+    private Boolean isActive;
 }

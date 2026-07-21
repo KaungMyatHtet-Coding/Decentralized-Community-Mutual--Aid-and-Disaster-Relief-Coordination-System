@@ -52,6 +52,7 @@ public class Notification {
         DONATION_RECEIVED,   // ✅ ရှိပြီ
         CAMPAIGN_COMPLETED,  // ➕ ထည့်
         VOLUNTEER_APPROVED,  // ✅ ရှိပြီ
-        VOLUNTEER_REJECTED   // ➕ ထည့်
+        VOLUNTEER_REJECTED,  // ➕ ထည့်
+        SOS_ALERT            // 🚨 Emergency High-Priority Alert
     }
 }

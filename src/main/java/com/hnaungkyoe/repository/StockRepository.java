@@ -10,7 +10,9 @@ import java.util.Optional;
 
 @Repository
 public interface StockRepository extends JpaRepository<Stock, Long> {
-    Optional<Stock> findByItemName(String itemName);
+    Optional<Stock> findByItemNameAndTownship(String itemName, String township);
+    Optional<Stock> findFirstByItemName(String itemName);
+    List<Stock> findByTownship(String township);
     List<Stock> findByCategory(Stock.Category category);
 
     @Query("SELECT s FROM Stock s WHERE s.quantity < :threshold")

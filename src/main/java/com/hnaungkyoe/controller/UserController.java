@@ -6,6 +6,7 @@ import com.hnaungkyoe.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import java.util.List;
 
@@ -59,10 +60,24 @@ public class UserController {
 
     // 5. Delete User (DELETE http://localhost:8081/api/users/{id})
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
+    public ResponseEntity<?> deleteUser(@PathVariable Long id, @AuthenticationPrincipal User currentUser) {
         try {
-            userService.deleteUser(id);
+            userService.deleteUser(id, currentUser);
             return ResponseEntity.ok("User deleted successfully with id: " + id);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // 6. Change Role (PATCH http://localhost:8081/api/users/{id})
+    @PatchMapping("/{id}")
+    public ResponseEntity<?> updateUserRole(@PathVariable Long id, @RequestBody java.util.Map<String, String> updates, @AuthenticationPrincipal User currentUser) {
+        try {
+            if (updates.containsKey("role")) {
+                User user = userService.updateUserRole(id, User.Role.valueOf(updates.get("role")), currentUser);
+                return ResponseEntity.ok(user);
+            }
+            return ResponseEntity.badRequest().body("Role not provided");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -71,10 +86,15 @@ public class UserController {
 
     @Autowired private UserRepository userRepository;
     @GetMapping("/volunteers")
-    public ResponseEntity<List<User>> getAllVolunteers() {
-        List<User> volunteers = userRepository.findByRoleIn(
-                List.of(User.Role.ROLE_VOLUNTEER, User.Role.ROLE_SENIOR_VOLUNTEER)
-        );
+    public ResponseEntity<List<User>> getAllVolunteers(@AuthenticationPrincipal User currentUser) {
+        List<User.Role> volRoles = List.of(User.Role.ROLE_VOLUNTEER, User.Role.ROLE_SENIOR_VOLUNTEER);
+        List<User> volunteers;
+        
+        if (currentUser != null && currentUser.getRole() == User.Role.ROLE_SUB_ADMIN) {
+            volunteers = userRepository.findByTownshipAndRoleIn(currentUser.getTownship(), volRoles);
+        } else {
+            volunteers = userRepository.findByRoleIn(volRoles);
+        }
         return ResponseEntity.ok(volunteers);
     }
 }

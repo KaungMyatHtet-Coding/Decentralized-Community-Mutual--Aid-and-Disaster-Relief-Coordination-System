@@ -16,6 +16,7 @@ public interface ItemDonationRepository extends JpaRepository<ItemDonation, Long
     List<ItemDonation> findByStatus(ItemDonation.Status status);
     List<ItemDonation> findByAssignedVolunteerId(Long volunteerId);
     long countByStatus(ItemDonation.Status status);
+    long countByStatusAndDonorTownship(ItemDonation.Status status, String donorTownship);
     List<ItemDonation> findByStatusOrderByCreatedAtDesc(ItemDonation.Status status);
     List<ItemDonation> findByAssignedVolunteerIdAndStatus(Long volunteerId, ItemDonation.Status status);
 

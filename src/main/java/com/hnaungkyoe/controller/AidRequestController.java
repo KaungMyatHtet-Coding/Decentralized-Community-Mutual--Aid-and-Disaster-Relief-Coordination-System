@@ -57,10 +57,11 @@ public class AidRequestController {
     public ResponseEntity<?> updateStatus(
             @PathVariable Long id,
             @RequestParam AidRequest.Status status,
+            @RequestParam(required = false) String proofPhotoUrl,
             @AuthenticationPrincipal User currentUser) {
         try {
             return ResponseEntity.ok(
-                    service.updateStatus(id, status, currentUser.getId()));
+                    service.updateStatus(id, status, currentUser.getId(), proofPhotoUrl));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

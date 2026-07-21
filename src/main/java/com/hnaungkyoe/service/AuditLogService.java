@@ -20,6 +20,11 @@ public class AuditLogService {
     }
 
     public List<AuditLog> getAllLogs() {
-        return auditLogRepository.findAll();
+        return auditLogRepository.findAllByOrderByCreatedAtDesc();
+    }
+
+    public List<AuditLog> getLogsByTownship(String township) {
+        if (township == null || township.isEmpty()) return getAllLogs();
+        return auditLogRepository.findByPerformedBy_TownshipOrderByCreatedAtDesc(township);
     }
 }

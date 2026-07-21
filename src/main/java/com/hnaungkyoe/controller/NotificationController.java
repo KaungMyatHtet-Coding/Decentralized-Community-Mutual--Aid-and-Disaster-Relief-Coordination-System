@@ -42,4 +42,26 @@ public class NotificationController {
         service.markAllAsRead(currentUser.getId());
         return ResponseEntity.ok("All notifications marked as read");
     }
+
+    // 🚨 Trigger SOS Alert
+    @PostMapping("/sos")
+    public ResponseEntity<?> triggerSOS(
+            @RequestBody java.util.Map<String, String> payload,
+            @AuthenticationPrincipal User currentUser) {
+        try {
+            String message = payload.get("message");
+            String township = currentUser.getTownship();
+            if (township == null || township.isEmpty()) {
+                return ResponseEntity.badRequest().body("Your profile does not have a township set. Please update your profile before sending an SOS.");
+            }
+            if (message == null || message.trim().isEmpty()) {
+                message = "Emergency Assistance Needed!";
+            }
+            
+            service.sendSOSToTownship(township, message, currentUser);
+            return ResponseEntity.ok(java.util.Map.of("success", true, "message", "SOS Alert broadcasted successfully."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
 }

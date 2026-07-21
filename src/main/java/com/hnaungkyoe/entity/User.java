@@ -104,6 +104,11 @@ public class User {
     @Builder.Default
     private Boolean profileCompleted = false;
 
+    // ─── Volunteer Availability ────────────────────────────
+    @Column(name = "is_active")
+    @Builder.Default
+    private Boolean isActive = true;
+
     // ─── Timestamps ────────────────────────────────────────
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -121,6 +126,7 @@ public class User {
         if (this.hasVehicle == null) this.hasVehicle = false;
         if (this.profileCompleted == null) this.profileCompleted = false;
         if (this.yearsOfExperience == null) this.yearsOfExperience = 0;
+        if (this.isActive == null) this.isActive = true;
     }
 
     @PreUpdate

@@ -5,6 +5,8 @@ import com.hnaungkyoe.service.PostService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.hnaungkyoe.entity.User;
 
 import java.util.List;
 import java.util.Map;
@@ -26,8 +28,8 @@ public class PostController {
     // GET /api/posts/all — ADMIN ONLY
     // ManagePosts.jsx က ဒီ endpoint ကို သုံးမည်
     @GetMapping("/all")
-    public ResponseEntity<List<Post>> getAllPosts() {
-        return ResponseEntity.ok(postService.getAllPosts());
+    public ResponseEntity<List<Post>> getAllPosts(@AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(postService.getAllPosts(currentUser));
     }
 
     // GET /api/posts/{id} — PUBLIC

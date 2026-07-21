@@ -75,8 +75,16 @@ public class VolunteerApplicationService {
         return repository.findAll();
     }
 
+    public List<VolunteerApplication> getApplicationsByTownship(String township) {
+        return repository.findByOperatingTownship(township);
+    }
+
     public List<VolunteerApplication> getPendingApplications() {
         return repository.findByStatus(VolunteerApplication.Status.PENDING);
+    }
+
+    public List<VolunteerApplication> getPendingApplicationsByTownship(String township) {
+        return repository.findByStatusAndOperatingTownship(VolunteerApplication.Status.PENDING, township);
     }
 
     public Optional<VolunteerApplication> getApplicationById(Long id) {

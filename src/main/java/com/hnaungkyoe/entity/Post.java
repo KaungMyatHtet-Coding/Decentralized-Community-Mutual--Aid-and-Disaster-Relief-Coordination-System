@@ -24,6 +24,9 @@ public class Post {
     @Column(name = "image_url")
     private String imageUrl;
 
+    @Column(name = "township")
+    private String township;
+
     // PUBLISHED သို့မဟုတ် DRAFT
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

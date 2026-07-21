@@ -48,9 +48,13 @@ public class AidRequestService {
     }
 
     // Status update — PENDING→VERIFIED→RESOLVED
-    public AidRequest updateStatus(Long id, AidRequest.Status newStatus, Long adminId) {
+    public AidRequest updateStatus(Long id, AidRequest.Status newStatus, Long adminId, String proofPhotoUrl) {
         AidRequest request = aidRequestRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Aid Request not found"));
+
+        if (request.getReporter() != null && request.getReporter().getId().equals(adminId)) {
+            throw new RuntimeException("Conflict of Interest: You cannot approve or update your own Aid Request.");
+        }
 
         AidRequest.Status oldStatus = request.getStatus();
         request.setStatus(newStatus);
@@ -59,6 +63,10 @@ public class AidRequestService {
             User admin = userRepository.findById(adminId)
                     .orElseThrow(() -> new RuntimeException("Admin not found"));
             request.setVerifiedBy(admin);
+        }
+        
+        if (newStatus == AidRequest.Status.RESOLVED && proofPhotoUrl != null && !proofPhotoUrl.isEmpty()) {
+            request.setProofPhotoUrl(proofPhotoUrl);
         }
 
         AidRequest updated = aidRequestRepository.save(request);

@@ -13,4 +13,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     // Admin အတွက် — post အကုန် newest first
     List<Post> findAllByOrderByCreatedAtDesc();
+
+    // Township အလိုက် (နှင့် Global) post အကုန်
+    List<Post> findByTownshipInOrderByCreatedAtDesc(List<String> townships);
 }

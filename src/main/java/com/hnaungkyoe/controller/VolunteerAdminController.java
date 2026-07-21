@@ -7,8 +7,8 @@ import com.hnaungkyoe.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 @RestController
 @RequestMapping("/api/admin/volunteers")
@@ -26,17 +26,31 @@ public class VolunteerAdminController {
     // ─────────────────────────────────────────────
     @GetMapping
     public ResponseEntity<List<VolunteerApplication>> getVolunteers(
-            @RequestParam(required = false, defaultValue = "") String search) {
+            @RequestParam(required = false, defaultValue = "") String search,
+            @AuthenticationPrincipal User currentUser) {
 
         List<VolunteerApplication> volunteers;
+        boolean isSubAdmin = currentUser != null && currentUser.getRole() == User.Role.ROLE_SUB_ADMIN;
+        String township = isSubAdmin ? currentUser.getTownship() : null;
 
         if (search.isEmpty()) {
-            volunteers = volunteerApplicationRepository
-                    .findByStatusOrderByAppliedAtDesc(VolunteerApplication.Status.APPROVED);  // ✅
+            if (isSubAdmin) {
+                volunteers = volunteerApplicationRepository
+                        .findByStatusAndUser_TownshipOrderByAppliedAtDesc(VolunteerApplication.Status.APPROVED, township);
+            } else {
+                volunteers = volunteerApplicationRepository
+                        .findByStatusOrderByAppliedAtDesc(VolunteerApplication.Status.APPROVED);
+            }
         } else {
-            volunteers = volunteerApplicationRepository
-                    .findByStatusAndUser_UsernameContainingIgnoreCaseOrderByAppliedAtDesc(
-                            VolunteerApplication.Status.APPROVED, search);  // ✅
+            if (isSubAdmin) {
+                volunteers = volunteerApplicationRepository
+                        .findByStatusAndUser_TownshipAndUser_UsernameContainingIgnoreCaseOrderByAppliedAtDesc(
+                                VolunteerApplication.Status.APPROVED, township, search);
+            } else {
+                volunteers = volunteerApplicationRepository
+                        .findByStatusAndUser_UsernameContainingIgnoreCaseOrderByAppliedAtDesc(
+                                VolunteerApplication.Status.APPROVED, search);
+            }
         }
 
         return ResponseEntity.ok(volunteers);
@@ -48,17 +62,31 @@ public class VolunteerAdminController {
     // ─────────────────────────────────────────────
     @GetMapping("/applications")
     public ResponseEntity<List<VolunteerApplication>> getApplications(
-            @RequestParam(required = false, defaultValue = "") String search) {
+            @RequestParam(required = false, defaultValue = "") String search,
+            @AuthenticationPrincipal User currentUser) {
 
         List<VolunteerApplication> applications;
+        boolean isSubAdmin = currentUser != null && currentUser.getRole() == User.Role.ROLE_SUB_ADMIN;
+        String township = isSubAdmin ? currentUser.getTownship() : null;
 
         if (search.isEmpty()) {
-            applications = volunteerApplicationRepository
-                    .findByStatusOrderByAppliedAtDesc(VolunteerApplication.Status.PENDING);  // ✅
+            if (isSubAdmin) {
+                applications = volunteerApplicationRepository
+                        .findByStatusAndUser_TownshipOrderByAppliedAtDesc(VolunteerApplication.Status.PENDING, township);
+            } else {
+                applications = volunteerApplicationRepository
+                        .findByStatusOrderByAppliedAtDesc(VolunteerApplication.Status.PENDING);
+            }
         } else {
-            applications = volunteerApplicationRepository
-                    .findByStatusAndUser_UsernameContainingIgnoreCaseOrderByAppliedAtDesc(
-                            VolunteerApplication.Status.PENDING, search);  // ✅
+            if (isSubAdmin) {
+                applications = volunteerApplicationRepository
+                        .findByStatusAndUser_TownshipAndUser_UsernameContainingIgnoreCaseOrderByAppliedAtDesc(
+                                VolunteerApplication.Status.PENDING, township, search);
+            } else {
+                applications = volunteerApplicationRepository
+                        .findByStatusAndUser_UsernameContainingIgnoreCaseOrderByAppliedAtDesc(
+                                VolunteerApplication.Status.PENDING, search);
+            }
         }
 
         return ResponseEntity.ok(applications);
@@ -107,11 +135,19 @@ public class VolunteerAdminController {
     // PATCH /api/admin/volunteers/{id}/fire
     // ─────────────────────────────────────────────
     @PatchMapping("/{id}/fire")
-    public ResponseEntity<VolunteerApplication> fireVolunteer(
-            @PathVariable Long id) {
+    public ResponseEntity<?> fireVolunteer(
+            @PathVariable Long id, @AuthenticationPrincipal User currentUser) {
 
         VolunteerApplication app = volunteerApplicationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Volunteer record not found"));
+
+        if (currentUser != null && currentUser.getRole() == User.Role.ROLE_SUB_ADMIN) {
+            if (!currentUser.getTownship().equals(app.getUser().getTownship())) {
+                return ResponseEntity.status(403).body("Unauthorized: You can only fire volunteers in your township.");
+            }
+        } else if (currentUser == null || currentUser.getRole() != User.Role.ROLE_SUPER_ADMIN) {
+            return ResponseEntity.status(403).body("Unauthorized");
+        }
 
         app.setStatus(VolunteerApplication.Status.FIRED);  // ✅
         volunteerApplicationRepository.save(app);

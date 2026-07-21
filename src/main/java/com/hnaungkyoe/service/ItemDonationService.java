@@ -87,9 +87,13 @@ public class ItemDonationService {
     }
 
     @Transactional
-    public ItemDonation approveAndAssign(Long donationId, Long volunteerId) {
+    public ItemDonation approveAndAssign(Long donationId, Long volunteerId, User admin) {
         ItemDonation donation = itemDonationRepository.findById(donationId)
                 .orElseThrow(() -> new RuntimeException("Donation not found"));
+
+        if (donation.getDonor() != null && donation.getDonor().getId().equals(admin.getId())) {
+            throw new RuntimeException("Conflict of Interest: You cannot approve your own Item Donation.");
+        }
 
         if (donation.getStatus() != ItemDonation.Status.PENDING_ADMIN) {
             throw new RuntimeException("This donation cannot be approved now");
@@ -251,9 +255,13 @@ public class ItemDonationService {
     }
 
     @Transactional
-    public ItemDonation rejectItemDonation(Long donationId, String reason) {
+    public ItemDonation rejectItemDonation(Long donationId, String reason, User admin) {
         ItemDonation donation = itemDonationRepository.findById(donationId)
                 .orElseThrow(() -> new RuntimeException("Item donation not found"));
+
+        if (donation.getDonor() != null && donation.getDonor().getId().equals(admin.getId())) {
+            throw new RuntimeException("Conflict of Interest: You cannot reject your own Item Donation.");
+        }
 
         donation.setStatus(ItemDonation.Status.ADMIN_REJECTED);
 
@@ -447,6 +455,10 @@ public class ItemDonationService {
         ItemDonation donation = itemDonationRepository.findById(donationId)
                 .orElseThrow(() -> new RuntimeException("Donation not found"));
 
+        if (donation.getDonor() != null && donation.getDonor().getId().equals(admin.getId())) {
+            throw new RuntimeException("Conflict of Interest: You cannot approve your own Item Donation.");
+        }
+
         if (donation.getStatus() != ItemDonation.Status.VOLUNTEER_RECEIVED) {
             throw new RuntimeException("This item is not collected by volunteer yet!");
         }
@@ -458,7 +470,7 @@ public class ItemDonationService {
         ItemDonation savedDonation = itemDonationRepository.save(donation);
 
         // ၂။ 🏬 Stock (ဂိုဒေါင်) ထဲသို့ စနစ်တကျ စာရင်းသွင်းခြင်း (သို့မဟုတ်) တိုးမြှင့်ခြင်း Logic
-        Stock existingStock = stockRepository.findByItemName(donation.getItemName()).orElse(null);
+        Stock existingStock = stockRepository.findFirstByItemName(donation.getItemName()).orElse(null);
 
         if (existingStock != null) {
             // ဂိုဒေါင်ထဲမှာ ပစ္စည်းအမည် ရှိပြီးသားဆိုရင် - အရေအတွက်ဟောင်းနဲ့ အသစ်ကို ပေါင်းပေးမယ်

@@ -23,6 +23,13 @@ public class PostService {
         User author = userRepository.findById(authorId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         post.setAuthor(author);
+
+        if (author.getRole() == User.Role.ROLE_SUPER_ADMIN) {
+            post.setTownship("Global");
+        } else {
+            post.setTownship(author.getTownship());
+        }
+
         Post saved = postRepository.save(post);
 
         // ✅ PUBLISHED ဆိုရင်သာ users အားလုံးကို notify
@@ -70,7 +77,12 @@ public class PostService {
         return postRepository.findByStatusOrderByCreatedAtDesc(Post.PostStatus.PUBLISHED);
     }
 
-    public List<Post> getAllPosts() {
+    public List<Post> getAllPosts(User currentUser) {
+        if (currentUser != null && currentUser.getRole() == User.Role.ROLE_SUB_ADMIN) {
+            return postRepository.findByTownshipInOrderByCreatedAtDesc(
+                    List.of(currentUser.getTownship(), "Global")
+            );
+        }
         return postRepository.findAllByOrderByCreatedAtDesc();
     }
 

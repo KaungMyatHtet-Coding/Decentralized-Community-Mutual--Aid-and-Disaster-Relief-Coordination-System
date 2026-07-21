@@ -28,12 +28,18 @@ public class VolunteerApplicationController {
     }
 
     @GetMapping
-    public ResponseEntity<List<VolunteerApplication>> getAll() {
+    public ResponseEntity<List<VolunteerApplication>> getAll(@AuthenticationPrincipal User currentUser) {
+        if (currentUser != null && currentUser.getRole() == User.Role.ROLE_SUB_ADMIN) {
+            return ResponseEntity.ok(service.getApplicationsByTownship(currentUser.getTownship()));
+        }
         return ResponseEntity.ok(service.getAllApplications());
     }
 
     @GetMapping("/pending")
-    public ResponseEntity<List<VolunteerApplication>> getPending() {
+    public ResponseEntity<List<VolunteerApplication>> getPending(@AuthenticationPrincipal User currentUser) {
+        if (currentUser != null && currentUser.getRole() == User.Role.ROLE_SUB_ADMIN) {
+            return ResponseEntity.ok(service.getPendingApplicationsByTownship(currentUser.getTownship()));
+        }
         return ResponseEntity.ok(service.getPendingApplications());
     }
 

@@ -9,4 +9,6 @@ import java.util.List;
 public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
     List<AuditLog> findByEntityTypeAndEntityId(String entityType, Long entityId);
     List<AuditLog> findByPerformedById(Long userId);
+    List<AuditLog> findByPerformedBy_TownshipOrderByCreatedAtDesc(String township);
+    List<AuditLog> findAllByOrderByCreatedAtDesc();
 }

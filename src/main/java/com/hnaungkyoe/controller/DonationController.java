@@ -52,14 +52,14 @@ public class DonationController {
     }
 
     @PatchMapping("/{id}/confirm")
-    public ResponseEntity<?> confirm(@PathVariable Long id) {
-        try { return ResponseEntity.ok(service.confirmDonation(id)); }
+    public ResponseEntity<?> confirm(@PathVariable Long id, @AuthenticationPrincipal User currentUser) {
+        try { return ResponseEntity.ok(service.confirmDonation(id, currentUser.getId())); }
         catch (RuntimeException e) { return ResponseEntity.badRequest().body(e.getMessage()); }
     }
 
     @PatchMapping("/{id}/reject")
-    public ResponseEntity<?> reject(@PathVariable Long id) {
-        try { return ResponseEntity.ok(service.rejectDonation(id)); }
+    public ResponseEntity<?> reject(@PathVariable Long id, @AuthenticationPrincipal User currentUser) {
+        try { return ResponseEntity.ok(service.rejectDonation(id, currentUser.getId())); }
         catch (RuntimeException e) { return ResponseEntity.badRequest().body(e.getMessage()); }
     }
 

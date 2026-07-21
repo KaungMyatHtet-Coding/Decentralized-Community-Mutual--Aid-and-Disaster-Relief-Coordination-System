@@ -56,6 +56,9 @@ public class AidRequest {
     @Column(name = "upvote_count", nullable = false)
     private Long upvoteCount;
 
+    @Column(name = "proof_photo_url", columnDefinition = "TEXT")
+    private String proofPhotoUrl;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

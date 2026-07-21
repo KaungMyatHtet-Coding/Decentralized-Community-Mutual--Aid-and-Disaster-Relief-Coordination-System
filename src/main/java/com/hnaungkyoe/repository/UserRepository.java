@@ -18,6 +18,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByEmail(String email);
     boolean existsByUsername(String username);
     List<User> findByRoleIn(List<User.Role> roles);
+    long countByRoleIn(List<User.Role> roles);
 
     // ─── NEW: Township matching for auto-assign ──────────────────
     // Priority 1: Same township

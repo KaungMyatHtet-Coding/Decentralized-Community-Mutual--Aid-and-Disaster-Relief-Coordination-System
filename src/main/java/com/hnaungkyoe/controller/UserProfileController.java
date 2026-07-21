@@ -65,6 +65,9 @@ public class UserProfileController {
             currentUser.setAvailableDays(dto.getAvailableDays());
             currentUser.setAvailableTimes(dto.getAvailableTimes());
             currentUser.setYearsOfExperience(dto.getYearsOfExperience());
+            if (dto.getIsActive() != null) {
+                currentUser.setIsActive(dto.getIsActive());
+            }
 
             // Profile completion
             boolean isComplete = currentUser.getFullName() != null &&

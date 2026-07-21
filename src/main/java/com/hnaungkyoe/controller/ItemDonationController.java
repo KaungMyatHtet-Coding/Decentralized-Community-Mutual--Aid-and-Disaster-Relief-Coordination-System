@@ -45,19 +45,19 @@ public class ItemDonationController {
     }
 
     @PatchMapping("/{id}/approve")
-    public ResponseEntity<?> approveAndAssign(@PathVariable Long id, @RequestParam Long volunteerId) {
+    public ResponseEntity<?> approveAndAssign(@PathVariable Long id, @RequestParam Long volunteerId, @AuthenticationPrincipal User currentUser) {
         try {
-            return ResponseEntity.ok(service.approveAndAssign(id, volunteerId));
+            return ResponseEntity.ok(service.approveAndAssign(id, volunteerId, currentUser));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
     @PatchMapping("/{id}/admin-reject")
-    public ResponseEntity<?> adminReject(@PathVariable Long id, @RequestBody Map<String, String> body) {
+    public ResponseEntity<?> adminReject(@PathVariable Long id, @RequestBody Map<String, String> body, @AuthenticationPrincipal User currentUser) {
         try {
             String reason = body.getOrDefault("reason", "");
-            return ResponseEntity.ok(service.rejectItemDonation(id, reason));
+            return ResponseEntity.ok(service.rejectItemDonation(id, reason, currentUser));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

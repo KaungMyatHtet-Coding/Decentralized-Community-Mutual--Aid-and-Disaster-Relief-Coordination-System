@@ -12,6 +12,8 @@ public interface AidRequestRepository extends JpaRepository<AidRequest, Long> {
     // ✅ categories အတွက် အသစ်
     List<AidRequest> findByCategoriesContaining(AidRequest.Category category);
     List<AidRequest> findByStatus(AidRequest.Status status);
+    long countByStatus(AidRequest.Status status);
+    long countByStatusAndTownship(AidRequest.Status status, String township);
     List<AidRequest> findByReporterId(Long reporterId);
     List<AidRequest> findByTownshipAndStatus(String township, AidRequest.Status status);
     List<AidRequest> findByTownship(String township);

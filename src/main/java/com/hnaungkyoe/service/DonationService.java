@@ -40,9 +40,13 @@ public class DonationService {
     }
 
     @Transactional
-    public Donation confirmDonation(Long donationId) {
+    public Donation confirmDonation(Long donationId, Long adminId) {
         Donation donation = donationRepository.findById(donationId)
                 .orElseThrow(() -> new RuntimeException("Donation not found"));
+
+        if (donation.getDonor() != null && donation.getDonor().getId().equals(adminId)) {
+            throw new RuntimeException("Conflict of Interest: You cannot approve your own Donation.");
+        }
         donation.setStatus(Donation.Status.CONFIRMED);
 
         if (donation.getDonationType() == Donation.DonationType.MONEY
@@ -60,7 +64,7 @@ public class DonationService {
 
         if (donation.getDonationType() == Donation.DonationType.ITEMS
                 && donation.getItemName() != null) {
-            stockRepository.findByItemName(donation.getItemName())
+            stockRepository.findFirstByItemName(donation.getItemName())
                     .ifPresent(stock -> {
                         stock.setQuantity(stock.getQuantity() + donation.getQuantity());
                         stockRepository.save(stock);
@@ -84,9 +88,13 @@ public class DonationService {
         return confirmed;
     }
 
-    public Donation rejectDonation(Long donationId) {
+    public Donation rejectDonation(Long donationId, Long adminId) {
         Donation donation = donationRepository.findById(donationId)
                 .orElseThrow(() -> new RuntimeException("Donation not found"));
+
+        if (donation.getDonor() != null && donation.getDonor().getId().equals(adminId)) {
+            throw new RuntimeException("Conflict of Interest: You cannot reject your own Donation.");
+        }
         donation.setStatus(Donation.Status.REJECTED);
         return donationRepository.save(donation);
     }

@@ -76,11 +76,40 @@ public class UserService {
         }).orElseThrow(() -> new RuntimeException("User not found with id: " + id));
     }
 
-    // 7. ဖျက်ခြင်း
-    public void deleteUser(Long id) {
-        if (!userRepository.existsById(id)) {
-            throw new RuntimeException("User not found with id: " + id);
+    // 7. ဖျက်ခြင်း (Secured)
+    public void deleteUser(Long id, User currentUser) {
+        User target = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+        
+        if (currentUser.getRole() == User.Role.ROLE_SUB_ADMIN) {
+            // Sub-Admin can only delete ROLE_VOLUNTEER or ROLE_PUBLIC in their own township
+            if ((target.getRole() == User.Role.ROLE_VOLUNTEER || target.getRole() == User.Role.ROLE_PUBLIC) 
+                && currentUser.getTownship().equals(target.getTownship())) {
+                userRepository.deleteById(id);
+            } else {
+                throw new RuntimeException("Unauthorized: You can only delete volunteers/public users in your township.");
+            }
+        } else if (currentUser.getRole() == User.Role.ROLE_SUPER_ADMIN) {
+            userRepository.deleteById(id);
+        } else {
+            throw new RuntimeException("Unauthorized: Admin access required.");
         }
-        userRepository.deleteById(id);
+    }
+
+    public User updateUserRole(Long id, User.Role newRole, User currentUser) {
+        User target = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+
+        if (currentUser.getRole() == User.Role.ROLE_SUB_ADMIN) {
+            if (newRole == User.Role.ROLE_SUPER_ADMIN || newRole == User.Role.ROLE_SUB_ADMIN || newRole == User.Role.ROLE_DIVISION_ADMIN || newRole == User.Role.ROLE_CITY_ADMIN) {
+                throw new RuntimeException("Unauthorized: Sub-Admins cannot elevate users to Admin roles.");
+            }
+            if (!currentUser.getTownship().equals(target.getTownship())) {
+                throw new RuntimeException("Unauthorized: You can only change roles for users in your township.");
+            }
+        } else if (currentUser.getRole() != User.Role.ROLE_SUPER_ADMIN) {
+            throw new RuntimeException("Unauthorized: Admin access required.");
+        }
+
+        target.setRole(newRole);
+        return userRepository.save(target);
     }
 }

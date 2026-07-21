@@ -32,4 +32,9 @@ public interface VolunteerApplicationRepository extends JpaRepository<VolunteerA
             VolunteerApplication.Status status,
             String operatingTownship
     );
+
+    List<VolunteerApplication> findByOperatingTownship(String operatingTownship);
+    long countByStatusAndUser_Township(VolunteerApplication.Status status, String township);
+    List<VolunteerApplication> findByStatusAndUser_TownshipOrderByAppliedAtDesc(VolunteerApplication.Status status, String township);
+    List<VolunteerApplication> findByStatusAndUser_TownshipAndUser_UsernameContainingIgnoreCaseOrderByAppliedAtDesc(VolunteerApplication.Status status, String township, String username);
 }
