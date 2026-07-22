@@ -2,6 +2,7 @@ package com.hnaungkyoe.controller;
 
 import com.hnaungkyoe.entity.AidRequest;
 import com.hnaungkyoe.entity.User;
+import com.hnaungkyoe.dto.ResolveRequestDto;
 import com.hnaungkyoe.service.AidRequestService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -29,7 +30,10 @@ public class AidRequestController {
     }
 
     @GetMapping
-    public ResponseEntity<List<AidRequest>> getAll() {
+    public ResponseEntity<List<AidRequest>> getAll(@AuthenticationPrincipal User currentUser) {
+        if (currentUser != null && currentUser.getRole() == User.Role.ROLE_SUB_ADMIN) {
+            return ResponseEntity.ok(service.getByTownship(currentUser.getTownship()));
+        }
         return ResponseEntity.ok(service.getAllAidRequests());
     }
 
@@ -67,6 +71,18 @@ public class AidRequestController {
         }
     }
 
+    @PostMapping("/{id}/resolve")
+    public ResponseEntity<?> resolveRequest(
+            @PathVariable Long id,
+            @RequestBody ResolveRequestDto dto,
+            @AuthenticationPrincipal User currentUser) {
+        try {
+            return ResponseEntity.ok(service.resolveRequest(id, dto, currentUser.getId()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     // ✅ မိမိတင်ထားတဲ့ requests တွေ ကြည့်တယ်
     @GetMapping("/my")
     public ResponseEntity<List<AidRequest>> getMyRequests(
@@ -84,5 +100,35 @@ public class AidRequestController {
     public ResponseEntity<List<AidRequest>> getByCategories(
             @RequestParam List<AidRequest.Category> categories) {
         return ResponseEntity.ok(service.getByCategories(categories));
+    }
+
+    // ── Volunteer Endpoints ─────────────────────────────────
+
+    @GetMapping("/volunteer/available")
+    public ResponseEntity<?> getAvailableForVolunteer(@AuthenticationPrincipal User currentUser) {
+        if (currentUser.getRole() != User.Role.ROLE_VOLUNTEER) {
+            return ResponseEntity.status(403).body("Only volunteers can access this endpoint.");
+        }
+        return ResponseEntity.ok(service.getAvailableForVolunteer(currentUser.getTownship()));
+    }
+
+    @GetMapping("/volunteer/my-assignments")
+    public ResponseEntity<?> getMyAssignments(@AuthenticationPrincipal User currentUser) {
+        if (currentUser.getRole() != User.Role.ROLE_VOLUNTEER) {
+            return ResponseEntity.status(403).body("Only volunteers can access this endpoint.");
+        }
+        return ResponseEntity.ok(service.getMyAssignments(currentUser.getId()));
+    }
+
+    @PostMapping("/{id}/volunteer-accept")
+    public ResponseEntity<?> volunteerAcceptTask(@PathVariable Long id, @AuthenticationPrincipal User currentUser) {
+        if (currentUser.getRole() != User.Role.ROLE_VOLUNTEER) {
+            return ResponseEntity.status(403).body("Only volunteers can accept tasks.");
+        }
+        try {
+            return ResponseEntity.ok(service.acceptTask(id, currentUser.getId()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }

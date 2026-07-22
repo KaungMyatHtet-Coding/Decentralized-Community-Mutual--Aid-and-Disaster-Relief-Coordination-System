@@ -61,6 +61,34 @@ public class NotificationService {
             sendNotification(admin, title, message, type, referenceId, referenceType);
         }
     }
+
+    // ➕ Township volunteers အားလုံးဆီ notification ပို့တဲ့ method အသစ်
+    public void sendToVolunteersInTownship(String township, String title, String message,
+                                           Notification.Type type, Long referenceId,
+                                           String referenceType) {
+        List<User> volunteers = userRepository.findVolunteersByTownship(township);
+        for (User volunteer : volunteers) {
+            sendNotification(volunteer, title, message, type, referenceId, referenceType);
+        }
+    }
+
+    // ➕ Township Sub Admin အားလုံးဆီ notification ပို့တဲ့ method
+    public void sendToSubAdminsInTownship(String township, String title, String message,
+                                          Notification.Type type, Long referenceId,
+                                          String referenceType) {
+        List<User> subAdmins = userRepository.findByTownshipAndRoleIn(
+                township, List.of(User.Role.ROLE_SUB_ADMIN));
+        // Also notify super admins
+        List<User> superAdmins = userRepository.findByRoleIn(List.of(User.Role.ROLE_SUPER_ADMIN));
+        for (User admin : subAdmins) {
+            sendNotification(admin, title, message, type, referenceId, referenceType);
+        }
+        for (User sa : superAdmins) {
+            if (subAdmins.stream().noneMatch(a -> a.getId().equals(sa.getId()))) {
+                sendNotification(sa, title, message, type, referenceId, referenceType);
+            }
+        }
+    }
     // ➕ Users အားလုံးဆီ notification ပို့တဲ့ method
     public void sendToAllUsers(String title, String message,
                                Notification.Type type, Long referenceId,

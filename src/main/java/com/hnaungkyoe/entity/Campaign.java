@@ -18,11 +18,29 @@ public class Campaign {
     @Column(nullable = false, length = 150)
     private String title;
 
+    @Column(name = "title_my", length = 150)
+    private String titleMy;
+
     @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "target_amount", nullable = false, precision = 15, scale = 2)
+    @Column(name = "description_my", columnDefinition = "TEXT")
+    private String descriptionMy;
+
+    @Column(name = "image_url")
+    private String imageUrl;
+
+    @Column(length = 50)
+    private String category;
+
+    @Column(name = "target_amount", precision = 15, scale = 2)
     private BigDecimal targetAmount;
+
+    @Column(name = "author_id")
+    private Long authorId;
+
+    @Column(name = "township", length = 100)
+    private String township;
 
     @Column(name = "current_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal currentAmount;
@@ -48,6 +66,6 @@ public class Campaign {
     }
 
     public enum Status {
-        ACTIVE, COMPLETED, CANCELLED
+        PENDING, ACTIVE, COMPLETED, CANCELLED, REJECTED
     }
 }

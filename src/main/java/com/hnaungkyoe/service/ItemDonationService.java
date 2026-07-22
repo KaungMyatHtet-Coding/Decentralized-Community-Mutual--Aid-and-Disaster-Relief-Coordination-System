@@ -47,6 +47,7 @@ public class ItemDonationService {
         donation.setCondition(ItemDonation.Condition.valueOf((String) payload.get("condition")));
         donation.setDonorTownship((String) payload.get("donorTownship"));
         donation.setDonorPhone((String) payload.get("donorPhone"));
+        donation.setStreetAddress((String) payload.get("streetAddress"));
         donation.setHandoverType(ItemDonation.HandoverType.valueOf((String) payload.get("handoverType")));
 
         if (payload.get("handoverDate") != null) {
@@ -455,12 +456,11 @@ public class ItemDonationService {
         ItemDonation donation = itemDonationRepository.findById(donationId)
                 .orElseThrow(() -> new RuntimeException("Donation not found"));
 
-        if (donation.getDonor() != null && donation.getDonor().getId().equals(admin.getId())) {
-            throw new RuntimeException("Conflict of Interest: You cannot approve your own Item Donation.");
+        if (donation.getStatus() == ItemDonation.Status.STORED_IN_STOCK) {
+            throw new RuntimeException("This item is already stored in stock!");
         }
-
-        if (donation.getStatus() != ItemDonation.Status.VOLUNTEER_RECEIVED) {
-            throw new RuntimeException("This item is not collected by volunteer yet!");
+        if (donation.getStatus() == ItemDonation.Status.ADMIN_REJECTED) {
+            throw new RuntimeException("Cannot store a rejected item donation!");
         }
 
         // ၁။ Item Donation ရဲ့ Status ကို ညီလေးရဲ့ Entity ထဲက STORED_IN_STOCK အဆင့်သို့ ပြောင်းလဲခြင်း
@@ -470,7 +470,8 @@ public class ItemDonationService {
         ItemDonation savedDonation = itemDonationRepository.save(donation);
 
         // ၂။ 🏬 Stock (ဂိုဒေါင်) ထဲသို့ စနစ်တကျ စာရင်းသွင်းခြင်း (သို့မဟုတ်) တိုးမြှင့်ခြင်း Logic
-        Stock existingStock = stockRepository.findFirstByItemName(donation.getItemName()).orElse(null);
+        String township = donation.getDonorTownship() != null ? donation.getDonorTownship() : "Yangon";
+        Stock existingStock = stockRepository.findByItemNameAndTownship(donation.getItemName(), township).orElse(null);
 
         if (existingStock != null) {
             // ဂိုဒေါင်ထဲမှာ ပစ္စည်းအမည် ရှိပြီးသားဆိုရင် - အရေအတွက်ဟောင်းနဲ့ အသစ်ကို ပေါင်းပေးမယ်
@@ -479,9 +480,6 @@ public class ItemDonationService {
             stockRepository.save(existingStock);
         } else {
             // ဂိုဒေါင်ထဲမှာ ပစ္စည်းအသစ်ဆိုရင် - Row အသစ် ဆောက်ပြီး သွင်းမယ်
-
-            // 🎯 Campaign ထဲမှာ getCategory() ရှာမတွေ့တဲ့ ပြဿနာကို ဖြေရှင်းခြင်း
-            // ပစ္စည်းအမည် (Item Name) ကို ကြည့်ပြီး Stock Category Enum ထဲကို ဉာဏ်ကောင်းကောင်းနဲ့ အလိုအလျောက် ခွဲထုတ်ပေးမည့် လုံခြုံသော စနစ်
             Stock.Category stockCategory = Stock.Category.OTHER; // Default သတ်မှတ်ချက်
 
             String itemNameLower = donation.getItemName().toLowerCase();
@@ -500,23 +498,26 @@ public class ItemDonationService {
 
             Stock stock = Stock.builder()
                     .itemName(donation.getItemName())
-                    .category(stockCategory) // 👈 အပေါ်က ခွဲထုတ်လိုက်တဲ့ Stock.Category Enum စနစ်တကျ ဝင်သွားပါပြီ
+                    .township(township)
+                    .category(stockCategory)
                     .quantity(donation.getQuantity())
-                    .unit(donation.getUnit() != null ? donation.getUnit() : "pcs") // 👈 မရှိမဖြစ်လိုအပ်တဲ့ Unit ထည့်ပေးခြင်း
+                    .unit(donation.getUnit() != null ? donation.getUnit() : "pcs")
                     .updatedAt(LocalDateTime.now())
                     .build();
             stockRepository.save(stock);
         }
 
-        // 🔔 ၃။ အလှူရှင် (Donor) ဆီသို့ လှူဒါန်းမှု အောင်မြင်ပြီးကြောင်း နှလုံးသားနွေးထွေးစေမယ့် Success Noti ပို့ခြင်း
-        notificationService.sendNotification(
-                donation.getDonor(),
-                "🎉 Donation Successful!",
-                "မင်္ဂလာပါဗျာ၊ သင်လှူဒါန်းလိုက်သော '" + donation.getItemName() + "' အား ကျွန်ုပ်တို့၏ ဂိုဒေါင်အတွင်းသို့ စနစ်တကျ လက်ခံသိမ်းဆည်းပြီးပါပြီ။ လိုအပ်နေသူများထံ ဆက်လက်ဖြန့်ဝေပေးသွားပါမည်။ အလှူရှင်အား အထူးကျေးဇူးတင်ရှိပါသည် 🙏",
-                Notification.Type.STATUS_CHANGED,
-                donation.getId(),
-                "ITEM_DONATION"
-        );
+        // 🔔 ၃။ အလှူရှင် (Donor) ဆီသို့ လှူဒါန်းမှု အောင်မြင်ပြီးကြောင်း Success Noti ပို့ခြင်း
+        if (donation.getDonor() != null) {
+            notificationService.sendNotification(
+                    donation.getDonor(),
+                    "🎉 Donation Successful!",
+                    "မင်္ဂလာပါဗျာ၊ သင်လှူဒါန်းလိုက်သော '" + donation.getItemName() + "' အား ကျွန်ုပ်တို့၏ ဂိုဒေါင်အတွင်းသို့ စနစ်တကျ လက်ခံသိမ်းဆည်းပြီးပါပြီ။ လိုအပ်နေသူများထံ ဆက်လက်ဖြန့်ဝေပေးသွားပါမည်။ အလှူရှင်အား အထူးကျေးဇူးတင်ရှိပါသည် 🙏",
+                    Notification.Type.STATUS_CHANGED,
+                    donation.getId(),
+                    "ITEM_DONATION"
+            );
+        }
 
         return savedDonation;
     }

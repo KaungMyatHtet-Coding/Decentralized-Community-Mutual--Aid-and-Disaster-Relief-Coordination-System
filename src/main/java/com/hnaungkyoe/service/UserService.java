@@ -13,16 +13,21 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder; // ← ထည့်လိုက်တယ်
+    private final PasswordEncoder passwordEncoder;
+    private final jakarta.persistence.EntityManager entityManager;
 
     @Autowired
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, jakarta.persistence.EntityManager entityManager) {
         this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder; // ← ထည့်လိုက်တယ်
+        this.passwordEncoder = passwordEncoder;
+        this.entityManager = entityManager;
     }
 
     // 1. အသုံးပြုသူအသစ် ဆောက်ခြင်း (Register)
     public User registerUser(User user) {
+        if (user.getTownship() == null || user.getTownship().trim().isEmpty()) {
+            throw new RuntimeException("Township is required for registration!");
+        }
         // Email ထပ်နေလားစစ်တယ်
         if (userRepository.findByEmail(user.getEmail()).isPresent()) {
             throw new RuntimeException("Email '" + user.getEmail() + "' is already taken!");
@@ -76,22 +81,30 @@ public class UserService {
         }).orElseThrow(() -> new RuntimeException("User not found with id: " + id));
     }
 
-    // 7. ဖျက်ခြင်း (Secured)
+    // 7. ဖျက်ခြင်း (Secured) - Soft Delete Pattern
+    @org.springframework.transaction.annotation.Transactional
     public void deleteUser(Long id, User currentUser) {
         User target = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found with id: " + id));
         
+        boolean canDelete = false;
+
         if (currentUser.getRole() == User.Role.ROLE_SUB_ADMIN) {
-            // Sub-Admin can only delete ROLE_VOLUNTEER or ROLE_PUBLIC in their own township
+            // Sub-Admin can only soft-delete ROLE_VOLUNTEER or ROLE_PUBLIC in their own township
             if ((target.getRole() == User.Role.ROLE_VOLUNTEER || target.getRole() == User.Role.ROLE_PUBLIC) 
                 && currentUser.getTownship().equals(target.getTownship())) {
-                userRepository.deleteById(id);
+                canDelete = true;
             } else {
                 throw new RuntimeException("Unauthorized: You can only delete volunteers/public users in your township.");
             }
         } else if (currentUser.getRole() == User.Role.ROLE_SUPER_ADMIN) {
-            userRepository.deleteById(id);
+            canDelete = true;
         } else {
             throw new RuntimeException("Unauthorized: Admin access required.");
+        }
+
+        if (canDelete) {
+            target.setIsActive(false);
+            userRepository.save(target);
         }
     }
 

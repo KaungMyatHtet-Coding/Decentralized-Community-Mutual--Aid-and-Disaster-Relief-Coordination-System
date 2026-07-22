@@ -7,6 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.hnaungkyoe.entity.User;
 
 @RestController
 @RequestMapping("/api/campaigns")
@@ -20,8 +22,8 @@ public class CampaignController {
     }
 
     @PostMapping
-    public ResponseEntity<Campaign> create(@RequestBody Campaign campaign) {
-        return ResponseEntity.ok(service.createCampaign(campaign));
+    public ResponseEntity<Campaign> create(@RequestBody Campaign campaign, @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(service.createCampaign(campaign, currentUser));
     }
 
     @GetMapping
@@ -36,8 +38,18 @@ public class CampaignController {
                 .orElse(ResponseEntity.notFound().build());
     }
     @PutMapping("/{id}")
-    public ResponseEntity<Campaign> update(@PathVariable Long id, @RequestBody Campaign campaign) {
-        return ResponseEntity.ok(service.updateCampaign(id, campaign));
+    public ResponseEntity<Campaign> update(@PathVariable Long id, @RequestBody Campaign campaign, @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(service.updateCampaign(id, campaign, currentUser));
+    }
+
+    @PutMapping("/{id}/approve")
+    public ResponseEntity<Campaign> approve(@PathVariable Long id) {
+        return ResponseEntity.ok(service.approveCampaign(id));
+    }
+
+    @PutMapping("/{id}/reject")
+    public ResponseEntity<Campaign> reject(@PathVariable Long id) {
+        return ResponseEntity.ok(service.rejectCampaign(id));
     }
 
     @DeleteMapping("/{id}")
