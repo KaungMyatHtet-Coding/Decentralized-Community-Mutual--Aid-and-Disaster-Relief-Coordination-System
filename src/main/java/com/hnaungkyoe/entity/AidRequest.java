@@ -3,6 +3,7 @@ package com.hnaungkyoe.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -24,6 +25,10 @@ public class AidRequest {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "verified_by")
     private User verifiedBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_volunteer_id")
+    private User assignedVolunteer;
 
     @Column(nullable = false, length = 100)
     private String title;
@@ -58,6 +63,11 @@ public class AidRequest {
 
     @Column(name = "proof_photo_url", columnDefinition = "TEXT")
     private String proofPhotoUrl;
+
+    // ✅ Items မစည်လိုပ်ဆြစ်လိုပ် တစ်ချက် အပိုးလိုပ်မှတ်ကို quantity
+    @OneToMany(mappedBy = "aidRequest", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<AidRequestItem> items = new ArrayList<>();
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

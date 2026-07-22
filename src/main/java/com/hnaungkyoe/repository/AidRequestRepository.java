@@ -17,6 +17,7 @@ public interface AidRequestRepository extends JpaRepository<AidRequest, Long> {
     List<AidRequest> findByReporterId(Long reporterId);
     List<AidRequest> findByTownshipAndStatus(String township, AidRequest.Status status);
     List<AidRequest> findByTownship(String township);
+    List<AidRequest> findByAssignedVolunteerId(Long volunteerId);
     // Find requests that contain ANY of the given categories
     @Query("SELECT DISTINCT a FROM AidRequest a JOIN a.categories c WHERE c IN :categories")
     List<AidRequest> findByCategoriesIn(@Param("categories") List<AidRequest.Category> categories);

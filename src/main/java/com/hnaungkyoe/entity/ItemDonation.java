@@ -54,6 +54,9 @@ public class ItemDonation {
     @Column(name = "donor_phone", nullable = false, length = 20)
     private String donorPhone;
 
+    @Column(name = "street_address", columnDefinition = "TEXT")
+    private String streetAddress;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "handover_type", nullable = false)
     private HandoverType handoverType;

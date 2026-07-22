@@ -53,6 +53,15 @@ public class ItemDonationController {
         }
     }
 
+    @PostMapping("/{id}/auto-assign")
+    public ResponseEntity<?> autoAssign(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(service.autoAssignNearestVolunteer(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @PatchMapping("/{id}/admin-reject")
     public ResponseEntity<?> adminReject(@PathVariable Long id, @RequestBody Map<String, String> body, @AuthenticationPrincipal User currentUser) {
         try {
@@ -193,6 +202,13 @@ public class ItemDonationController {
         List<ItemDonation> pendingItems = itemDonationRepository.findByStatus(ItemDonation.Status.VOLUNTEER_RECEIVED);
         return ResponseEntity.ok(pendingItems);
     }
+
+    @GetMapping("/admin/stored")
+    public ResponseEntity<List<ItemDonation>> getStoredInventory() {
+        List<ItemDonation> storedItems = itemDonationRepository.findByStatus(ItemDonation.Status.STORED_IN_STOCK);
+        return ResponseEntity.ok(storedItems);
+    }
+
     // ✅ Admin က ပစ္စည်းကို စစ်ဆေးပြီး ဂိုဒေါင်ထဲ သွင်းလိုက်သည့် API (Approve & Store)
     @PostMapping("/{id}/approve-and-store")
     public ResponseEntity<?> approveAndStore(

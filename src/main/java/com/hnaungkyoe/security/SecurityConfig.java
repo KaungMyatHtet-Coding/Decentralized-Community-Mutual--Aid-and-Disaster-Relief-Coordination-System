@@ -46,10 +46,14 @@ public class SecurityConfig {
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
 
                 .authorizeHttpRequests(auth -> auth
+                        // === 🛡️ ALLOW ERROR DISPATCHER (To see actual exceptions instead of 403) ===
+                        .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
 
                         // === 🌐 PUBLIC ENDPOINTS (Token မလိုဘဲ ဝင်ခွင့်ပြုမည်) ===
                         .requestMatchers("/api/users/register").permitAll()
                         .requestMatchers("/api/auth/login").permitAll()
+                        .requestMatchers("/api/auth/forgot-password").permitAll()
+                        .requestMatchers("/api/auth/reset-password").permitAll()
                         .requestMatchers("/api/upload/**").permitAll()
 
                         // Aid Requests (GET standard ဟာ public ဖြစ်တယ်)
